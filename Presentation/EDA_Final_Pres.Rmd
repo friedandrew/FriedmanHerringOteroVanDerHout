@@ -1,0 +1,32 @@
+---
+title: "Washington Dams and Water Quality"
+author: "Jackie Van Der Hout, Andrew Friedman-Herring, Catherine Otero"
+date: "4/11/2022"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Research Questions
+
+- 
+-
+-
+
+## Why ask?
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
