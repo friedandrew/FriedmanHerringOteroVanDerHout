@@ -98,6 +98,17 @@ Data Wrangling (see 03_DataExploration_Part2.rmd for more graph examples)
 #select for locations in WA 
 #NTL.phys.data.PeterPaul <- filter(NTL.phys.data, lakename %in% c("Paul Lake", "Peter Lake")) 
 
+#once wrangled, save data as csv
+#write.csv(NTL.phys.data.PeterPaul1, row.names = FALSE, file = "../../Environmental_Data_Analytics_2022/Data/Processed/AIMProcessed.csv")
+```
+
+Calculating River Distance Options
+```{r}
+#river dist package https://github.com/mbtyers/riverdist
+
+#alternate river distance calculation method https://fsdias.github.io/flow_distance.md/
+#river mile calculator outside of R https://waterdata.usgs.gov/wa/nwis/current?type=rivermi
+
 #bin sites into upstream or downstream of dam
 #add column with mutate function correlating above or below dam
 #another column for distance 
@@ -108,10 +119,48 @@ Data Wrangling (see 03_DataExploration_Part2.rmd for more graph examples)
 #NHD+ tools will have the background map with the streams https://usgs-r.github.io/nhdplusTools/
 #bin directly downstream and distance downstream 
 #make sure that all of the files are in the same projection before doing the analysis #projection of the basemap is what the other two files should be in 
-
-#once wrangled, save data as csv
-#write.csv(NTL.phys.data.PeterPaul1, row.names = FALSE, file = "../../Environmental_Data_Analytics_2022/Data/Processed/AIMProcessed.csv")
 ```
+
+ndhplus & intersectr attempt
+https://github.com/USGS-R/intersectr
+```{r}
+library(nhdplusTools)
+site <- list(featureSource = #"nwissite",
+               featureID = #"USGS-10128500")
+line <- navigate_nldi(site, "UT", "")
+site <- navigate_nldi(site, "UT", #"nwissite")
+
+nhdp <- subset_nhdplus(#ut$nhdplus_comid,
+                       #"nhdp_subset.gpkg",
+                      #"download")
+  
+nhdplusTools::get_flowline_index(
+  points = sites, 
+  flines = flowline,
+  searchradius = 100, #units of flowlines
+  precision = 10), #max node spacing
+
+#spatial intersection
+#could be used to intersect dam and sample locations to flow lines? 
+#install.packages("devtools")
+library(devtools)
+#be forewarned -- HUGE DOWNLOAD!!!!
+#devtools::install_github("USGS-R/intersectr")
+library(intersectr)
+cells <- create_cell_geometry(x_coords, y_coords, nc_projections, catchment)
+poly <- sf::st_as_sf(dplyr::select(catchment, ID = featureid))
+weights <- calculate_area_intersection_weights(cells, poly)
+dap_uri <- "#metadatalink"
+execute_intersection(nc_file = dap_uri,
+                     variable name = #"precipitation_amount", 
+                intersection_weights = weights,
+                cell_geometry = data_source_cells,
+                x_var = x_coord, y_var = y_coord, t_var = t_coord, 
+                start_datetime = #"",
+                end_datetime = #"")
+
+```
+
 
 Visualize Data - check https://www.data-to-viz.com/ for more ideas 
 ```{r}
