@@ -88,18 +88,40 @@ rm(WAAIM)
 counties_sf<- st_read('./Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) #Filter for just WA Counties
 
+counties_sf_utm <- st_transform(counties_sf, crs = 26910)
+dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
+WAAIM_tidy_utm <- st_transform(WAAIM_tidy, crs = 26910)
+
 ```
 
 ## Simple Vis of AIM
 
 ```{r}
-ggplot(data = WAAIM_tidy)+
-  geom_sf(data = counties_sf)+
+ggplot(data = WAAIM_tidy_utm)+
+  geom_sf(data = counties_sf_utm)+
   geom_sf()
 
 ```
 
+## Finding Dam locations that intersect the same counties as the AIM monitoring sites
 
+
+```{r}
+county_intersect <- counties_sf_utm[lengths(st_intersects(counties_sf_utm, WAAIM_tidy_utm)) > 0,]
+
+ggplot(data = WAAIM_tidy_utm)+
+  geom_sf(data = county_intersect)+
+  geom_sf()
+
+dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm, county_intersect)) > 0,]
+
+ggplot(data = dam_intersect)+
+  geom_sf(data = counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = WAAIM_tidy_utm, color = "red")
+  
+
+```
 
 
 
