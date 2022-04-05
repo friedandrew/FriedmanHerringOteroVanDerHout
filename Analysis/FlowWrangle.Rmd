@@ -28,14 +28,16 @@ ndhplus & intersectr attempt
 https://github.com/USGS-R/intersectr
 ```{r}
 library(nhdplusTools)
-site <- list(featureSource = #"nwissite",
-               featureID = #"USGS-10128500")
+library(sf)
+site <- list(featureSource = "nwissite",
+               featureID = "USGS-10128500")
 line <- navigate_nldi(site, "UT", "")
-site <- navigate_nldi(site, "UT", #"nwissite")
+site <- navigate_nldi(site, "UT", "nwissite")
 
-nhdp <- subset_nhdplus(#ut$nhdplus_comid,
-                       #"nhdp_subset.gpkg",
-                      #"download")
+
+                      nhdp <- subset_nhdplus(ut$nhdplus_comid,
+                       "nhdp_subset.gpkg",
+                      "download")
   
 nhdplusTools::get_flowline_index(
   points = sites, 
