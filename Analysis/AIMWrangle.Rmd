@@ -200,16 +200,20 @@ LAGOScovariates <- LAGOSjoined %>%
          maxdepth,lake_area_ha, buffer500m_slope_mean,
          percentdeveloped, percentforest, percentrowcrops)
 
+#need to keep as one dataset b/c cannot join sf datasets as we have others
 WAAIM_tidy_numeric <- WAAIM_tidy %>% 
   select(OBJECTID, NON_NTVE_WDY, NTVE_WDY, NON_NTVE_HRB, NTVE_HRB, SDGE_RSH, OBSRVD_INVRT_RCHNSS, MACROINVRTBRTE_CNT, NumberPools, D16, D84, D50, BNK_STBLTY, BNK_CVR_LWD)
 
-lapply(WAAIM_tidy_numeric, as.numeric)
+i <- c(2:15)  # Specify columns you want to change
 
-str(WAAIM_tidy_numeric)
 
-AIMcovariates <- WAAIM_tidy %>% 
-  lapply(df3,as.numeric)
-str(df3)
+WAAIM_tidy_numeric[ , i] <- apply(WAAIM_tidy_numeric[ , i], 2,            # Specify own function within apply
+                    function(x) as.numeric(as.character(x)))
+
+sapply(WAAIM_tidy_numeric, class)
+
+merge(WAAIM_tidy, WAAIM_tidy_numeric, by='OBJECTID')
+
 
 # create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use cor to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. the dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
 WAAIMcorr <- cor(WAAIM_tidy)
