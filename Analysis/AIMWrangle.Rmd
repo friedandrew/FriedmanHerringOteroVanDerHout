@@ -18,6 +18,7 @@ getwd()
 library(tidyverse)
 library(lubridate)
 library(sf)
+library(corrplot)
 theme_set(theme_light())
 ```
 
@@ -184,6 +185,50 @@ Visualize Data - check https://www.data-to-viz.com/ for more ideas
 Space for any statistical analyses (t-test, ANOVAs, GLMs, linear regressions etc)
 For example, comparing the means of a series of analytes that are and are not within X range proximity of an upstream dam.
 See 06_Lab_GLMs.Rmd for outline and guides to selecting appropriate statistical tests. 
+
+```{r correlation-check}
+## Covariates - Cat is working on modifying this WDA code for our project
+
+#If we wanted to explore some of the other variables that might help predict lake water quality, the function `corrplot` will allow us to create a correlation matrix whereby we can assess the correlations among various variables. We could then use this exploration to inform classification and/or covariate analysis with stressor-response modeling. 
+
+# putting possible covariates that may affect the water quality together
+LAGOScovariates <- LAGOSjoined %>%
+  mutate(percentdeveloped = buffer500m_nlcd2011_pct_22 + buffer500m_nlcd2011_pct_23 + buffer500m_nlcd2011_pct_24,
+         percentforest = buffer500m_nlcd2011_pct_41 + buffer500m_nlcd2011_ha_42 + buffer500m_nlcd2011_ha_43,
+         percentrowcrops = buffer500m_nlcd2011_pct_82) %>%
+  select(chla, tn, tp, doc, secchi,
+         maxdepth,lake_area_ha, buffer500m_slope_mean,
+         percentdeveloped, percentforest, percentrowcrops)
+
+WAAIM_tidy_numeric <- WAAIM_tidy %>% 
+  select(OBJECTID, NON_NTVE_WDY, NTVE_WDY, NON_NTVE_HRB, NTVE_HRB, SDGE_RSH, OBSRVD_INVRT_RCHNSS, MACROINVRTBRTE_CNT, NumberPools, D16, D84, D50, BNK_STBLTY, BNK_CVR_LWD)
+
+lapply(WAAIM_tidy_numeric, as.numeric)
+
+str(WAAIM_tidy_numeric)
+
+AIMcovariates <- WAAIM_tidy %>% 
+  lapply(df3,as.numeric)
+str(df3)
+
+# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use cor to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. the dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
+WAAIMcorr <- cor(WAAIM_tidy)
+
+?cor
+
+# Intro Corrplot
+# plot correlation matrix.
+corrplot(LAGOScorr)
+
+# customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
+corrplot(LAGOScorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#doc = dissolved organic carbon, more forest, higher slope correlated with more forest cover probs b/c harder to develop higher slope areas, bigger lakes correlated with deeper lakes. The size and color both change similarly for the correlation. 
+
+#Once have correlation plot can run an AIC to decide what to actually include in your model. Can also do a lasso or other. These are parametric. Machine learning method can also be used to choose a subset. 
+```
+
+
 ```{r}
 ##example only 
 #checking for normality
