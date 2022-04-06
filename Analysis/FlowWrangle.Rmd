@@ -5,7 +5,149 @@ date: "4/5/2022"
 output: html_document
 ---
 
-Calculating River Distance Options
+```{r}
+getwd()
+library(tidyverse)
+# install.packages("nhdplusTools") #uncomment and run!
+library(nhdplusTools)
+library(sf)
+library(tmap)
+tmap_mode("view") #makes map plots interactive
+library(dataRetrieval)
+library(maps)
+
+theme_set(theme_classic())
+options(scipen = 5) 
+```
+
+example: getting the flowlines for one AIM site
+```{r}
+# Extract latitude and longitude for each site
+
+WAAIMcoords1 <- WAAIM_tidy %>% 
+  filter(SITE_CD == "SW-SS-19199") %>% 
+  select(SITE_CD, MIDLAT, MIDLONG)
+
+# Define the sample site as the starting point
+start_point <- st_sfc(st_point(c(WAAIMcoords1$MIDLONG, WAAIMcoords1$MIDLAT)), 
+                      crs = 4269) # NAD83
+
+start_comid <- discover_nhdplus_id(start_point)
+
+NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+
+# Extract watershed and flowpath information
+subset_file <- tempfile(fileext = ".gpkg")
+subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = TRUE, 
+                         return_data = TRUE, overwrite = TRUE)
+
+# Create data frame for flowline
+flowline <- subset$NHDFlowline_Network
+class(flowline) #a spatial object
+
+#plotting successes
+states <- st_as_sf(maps::map(database = "state", plot = FALSE, fill = TRUE, col = "white"))
+wa <- filter(states, ID == "washington")
+
+ggplot(wa) +
+  geom_sf(fill = "white") +
+  geom_sf(data = flowline, aes(color = streamorde)) +
+  labs(color = "Stream Order") +
+  theme(legend.position = "top")
+#HAHAHAHAHA
+
+ggplot(flowline) +
+  geom_sf(fill = "white", color = "gray", lwd = 0.5) +
+  geom_sf(data = flowline, aes(color = streamorde)) +
+  labs(color = "Stream Order") +
+  theme(legend.position = "top")
+#WE HAVE A PLOT!!!
+
+#plotting failures
+#tm_shape(flowline)+tm_lines() getting an error path too long
+
+#tm_shape(UT_flowlines) + tm_lines() +
+  #tm_shape(UT_nwissite) +tm_dots(col="red") 
+
+#plot_nhdplus(WAAIMcoords1$MIDLONG, WAAIMcoords1$MIDLAT, streamorder = 3)
+```
+
+setting up for creating a function to repeat the above
+```{r}
+
+```
+
+writing the function with defined pieces from above
+**NOTE** 
+this function has not been tested!!
+```{r}
+#unsure if $ is needed for site,lat,long
+#unsure if flowline, catchment, waterbody need a command to create custom name for each different site
+
+extract_flowlines <- function(SITE_CD, MIDLAT, MIDLONG){
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  flowline <- subset$NHDFlowline_Network
+  catchment <- subset$CatchmentSP
+  waterbody <- subset$NHDWaterbody
+  cur_plot <-  ggplot(flowline) +
+    geom_sf(fill = "white", color = "gray", lwd = 0.5) +
+    geom_sf(data = flowline, aes(color = streamorde)) +
+    labs(color = "Stream Order") +
+    theme(legend.position = "top")
+  print(cur_plot)
+  return(line)
+}
+
+#create a "list" of site IDs plus lat and long? 
+#look into AO9 utilities data scraping hw to use rbind to make a cumulative dataframe as function iterates 
+#that piece would go into the for loop 
+
+for (i in list){
+  WAAIMcoords <- WAAIM_tidy %>% 
+  filter(SITE_CD == i) %>% 
+  select(SITE_CD, MIDLAT, MIDLONG) #is it i or SITE_CD here? 
+  extract_flowlines(i, MIDLAT, MIDLONG)
+  #add piece from above on building cumulative dataframe
+}
+```
+
+Indexing flowlines 
+**NOTE** 
+This code is from: https://usgs-r.github.io/nhdplusTools/articles/indexing.html
+And has not been edited for our data
+```{r}
+indexes <- get_flowline_index(sf::st_transform(flowlines, 5070), # albers
+                              sf::st_transform(sf::st_geometry(gages), 5070), 
+                              search_radius = units::set_units(200, "meters"), 
+                              max_matches = 1)
+
+indexes <- left_join(sf::st_sf(id = c(1:nrow(gages)), 
+                               geom = sf::st_geometry(gages)), 
+                     indexes, by = "id")
+
+plot(sf::st_geometry(sf::st_zm(flowlines)))
+plot(sf::st_geometry(indexes), add = TRUE)
+
+
+```
+
+
+Initial notes onCalculating River Distance Options
 ```{r}
 #river dist package https://github.com/mbtyers/riverdist
 
@@ -24,7 +166,7 @@ Calculating River Distance Options
 #make sure that all of the files are in the same projection before doing the analysis #projection of the basemap is what the other two files should be in 
 ```
 
-ndhplus & intersectr attempt
+ndhplus & intersectr attempt ONE
 https://github.com/USGS-R/intersectr
 ```{r}
 library(nhdplusTools)
@@ -66,22 +208,3 @@ execute_intersection(nc_file = dap_uri,
 
 ```
 
-
-Visualize Data - check https://www.data-to-viz.com/ for more ideas 
-```{r}
-
-#ggplot(subset(PeterPaul.chem.nutrients, depth == 0),aes(x = daynum, y = temperature_C, color = as.factor(year4)))+
-  #geom_point()+
-  #facet_wrap(vars(lakename), nrow = 2)+
-  #labs(y = "Temperature C") 
-
-#nutrient plot, can be adjusted & done with facet_wrap
-#Nutrientplot6 <-
- #ggplot(PeterPaul.chem.nutrients) +
-  #geom_freqpoly(aes(x = tn_ug), color = "darkred") +
- #geom_freqpoly(aes(x = tp_ug), color = "darkblue") +
-  #geom_freqpoly(aes(x = nh34), color = "blue") +
-  #geom_freqpoly(aes(x = no23), color = "royalblue") +
-  #geom_freqpoly(aes(x = po4), color = "red") 
-#print(Nutrientplot6)
-```
