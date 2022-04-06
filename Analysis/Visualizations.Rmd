@@ -1,0 +1,26 @@
+---
+title: "Visualizing"
+author: "Jackie Van Der Hout"
+date: "4/5/2022"
+output: pdf_document
+---
+
+
+Visualize Data - check https://www.data-to-viz.com/ for more ideas 
+```{r}
+
+#ggplot(subset(PeterPaul.chem.nutrients, depth == 0),aes(x = daynum, y = temperature_C, color = as.factor(year4)))+
+  #geom_point()+
+  #facet_wrap(vars(lakename), nrow = 2)+
+  #labs(y = "Temperature C") 
+
+#nutrient plot, can be adjusted & done with facet_wrap
+#Nutrientplot6 <-
+ #ggplot(PeterPaul.chem.nutrients) +
+  #geom_freqpoly(aes(x = tn_ug), color = "darkred") +
+ #geom_freqpoly(aes(x = tp_ug), color = "darkblue") +
+  #geom_freqpoly(aes(x = nh34), color = "blue") +
+  #geom_freqpoly(aes(x = no23), color = "royalblue") +
+  #geom_freqpoly(aes(x = po4), color = "red") 
+#print(Nutrientplot6)
+```

@@ -1,0 +1,192 @@
+---
+title: "NHD data expedition day"
+author: "Nick Bruns"
+date: "2/18/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Consult [these docs from this Download link](https://www.horizon-systems.com/NHDPlusData/NHDPlusV21/Documentation/NHDPlusV2_User_Guide.pdf) to understand NHD column values, their units etc.
+This is long, so just control-f on the information you need.
+
+[This map has all USGS gages](https://maps.waterdata.usgs.gov/mapper/index.html) 
+
+[This tool is nice for visualizing HUCs](http://waterqualityexplorer.rc.duke.edu:3838/explorer/) 
+
+
+
+```{r setup, include=FALSE}
+# install.packages("nhdplusTools") #uncomment and run!
+library(nhdplusTools)
+library(tidyverse)
+library(sf)
+library(tmap)
+tmap_mode("view") #makes map plots interactive
+```
+
+---
+
+
+```{r target_hucs}
+#some gage ID's
+New_Hope_Creek_gage_id <- "02097314"
+Eno_gage_id <- "02085070"
+Yampa_gage_id <- "09244490"
+Yampa_gage_id_upstream <- "09239500"
+Weber_river_id <- "10128500" #UTah
+Salmon_river_ADK_id <- "04249200" #Aderondacks (good clean Hydrograph!)
+Salmon_river_ID_head_waters<- "13310700"
+Yellowstone_river_id <- "06214500" # at Billings
+Flint_river <- "02349605" #Georgia
+
+```
+
+problem in this chunk with plotting, cur_line is list not sf?
+I ended up extracting the two items from the lists of both and trying to map that instead
+and did get a map!
+how do i make this work with lat / long instead of usgs gages?
+```{r code_demonstration}
+#First, we'll check how many machines work. So first, run this whole block, then we'll work through line by line.
+  cur_gage_id <- Eno_gage_id
+  cur_id_string<- paste0("USGS-",cur_gage_id) #just add prefix to string
+  cur_site <- list(featureSource = "nwissite",  #prepping below web quirie below, this just indicates the kind of data we have
+               featureID = cur_id_string) 
+  cur_line <- navigate_nldi(cur_site, "UT", "") #returns all upstream flowlines
+  cur_site_sf <- navigate_nldi(cur_site, "UT", "nwissite") #returns all upstream USGS gages
+
+  class(cur_line) #list
+#st_as_sf(cur_line, fill = TRUE, group = TRUE)
+  
+cur_line_origin <- cur_line$origin
+UT_flowlines <- cur_line$UT_flowlines
+cur_site_sf_origin <- cur_site_sf$origin
+UT_nwissite <- cur_site_sf$UT_nwissite
+  
+#now map flowlines and gages
+tm_shape(UT_flowlines) + tm_lines() +
+  tm_shape(UT_nwissite) +tm_dots(col="red") 
+```
+
+
+for this section, should i be using cur_line or UT_flowlines in subset_nhdplus()? 
+I went ahead and made the substitution
+```{r download_NHD_info}
+#Flowlines above are just the ID's . Download everything!
+save_file_name <- "Eno_River_NHD_subset.gpkg" #gkpg is an open source geospatial format
+
+class(UT_flowlines$nhdplus_comid)
+UT_flowlines$nhdplus_comid <- as.numeric(UT_flowlines$nhdplus_comid)
+class(UT_flowlines$nhdplus_comid)
+
+subset_nhdplus(UT_flowlines$nhdplus_comid, 
+                       save_file_name, 
+                       "download")
+
+cur_nhd <- st_read(save_file_name)
+glimpse(cur_nhd)
+```
+
+```{r make_nhd_plot}
+cur_density <- sum(cur_nhd$lengthkm)/max(cur_nhd$totdasqkm) #network density metric
+print(cur_density)
+
+#plot elevation
+cur_nhd %>% 
+  # filter(pathlength>2100) %>% #Necessary for Yampa river
+  ggplot() + 
+  geom_line(aes(x=pathlength,y=minelevsmo,col=as.factor(streamorde))) +
+   xlab("km to outlet") +
+  ylab("elevation (cm)") +
+  theme_light() + scale_color_viridis_d("stream order")
+```
+
+I want to customize this function to work with a list of AIM and dam sites! How do I do this if it isn't connected to USGS gages??
+Also, is it the sample sites or the dam sites that I want to input here? 
+```{r wrap_all_above_code_into_functions}
+#great. That's it. Now we'll wrap all in functions for easier  use.
+plot_basin <- function(gage_id_string){
+  id_string=paste0("USGS-",gage_id_string) 
+  site <- list(featureSource = "nwissite", 
+                featureID = id_string)
+  print("getting site") 
+  discover_nldi_navigation(site)
+  print("getting flowline")  
+  line <- navigate_nldi(site, "UT", "") #returns all upstream comids
+  print("getting usptream sites")
+  site_sf <- navigate_nldi(site, "UT", "nwissite") #returns all upstream gages!
+  cur_plot <- tm_shape(line) + tm_lines() +
+    tm_shape(site_sf) +tm_dots(col="red") 
+  print(cur_plot)
+  return(line)
+}
+
+download_slim_nhd <- function(flow_line_with_comid,save_string){
+  subset_nhdplus(flow_line_with_comid$nhdplus_comid, 
+                       save_string, 
+                       "download")
+}
+
+plot_elevation <- function(cur_nhd,river_name){
+  cur_nhd %>% 
+  ggplot() + 
+  geom_line(aes(x=pathlength,y=minelevsmo,col=as.factor(streamorde))) +
+   xlab("km to outlet") +
+  ylab("elevation (cm)") +
+  theme_dark() + scale_color_viridis_d("stream order") +
+    ggtitle(river_name)
+}
+
+#Geomorphic Instantenous Unit Hydrograph
+plot_GIUH <- function(cur_nhd){
+  ggplot(cur_nhd) +
+    geom_point(aes(y=totdasqkm,x=pathlength,col=as.character(streamorde))) + scale_color_viridis_d("stream order") +
+    theme_dark() 
+}
+
+compute_network_density<- function(cur_nhd){ 
+  sum(cur_nhd$lengthkm)/max(cur_nhd$totdasqkm)
+}
+
+plot_stream_order <- function(cur_nhd,matching_pal=T) {
+  if(matching_pal){
+    cur_nhd %>% mutate(streamorde=as.factor(streamorde)) %>%  
+      tm_shape() + tm_lines(col="streamorde",lwd = 3,palette = "viridis")
+  } else{
+     cur_nhd %>% mutate(streamorde=as.factor(streamorde)) %>%  
+      tm_shape() + tm_lines(col="streamorde",lwd = 3)
+  }
+  
+}
+```
+```{r show_function_use_example}
+#setup: to try a different basin, 
+# insert new code chunk (cmd + option + i)
+# paste this code chunk
+# modify this top part with a new name and USGS gage id.
+cur_river_name <- "New_Hope_Creek"
+cur_gage_id <- New_Hope_Creek_gage_id #or directly put a quoted gage id here
+##could we also put lat long here instead??
+print(cur_gage_id)
+
+#run code
+cur_file_name <- paste0(cur_river_name,"_NHD_subset.gpkg")
+cur_flow_line <- plot_basin(cur_gage_id)
+download_slim_nhd(cur_flow_line,cur_file_name) #will fail if the file already exists
+##error: could not find function "discover_nldi_navigation"
+
+cur_nhd <- st_read(cur_file_name) #load that NHD
+compute_network_density(cur_nhd)
+plot_elevation(cur_nhd,cur_river_name)
+plot_stream_order(cur_nhd )
+plot_GIUH(cur_nhd )
+```
+
+
+
+
+
+
+
+
+
