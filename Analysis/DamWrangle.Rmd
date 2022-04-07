@@ -59,6 +59,8 @@ dam_complete_raw <- rbind(dam_raw_0, dam_raw_1, dam_raw_2,
 rm(dam_raw_0, dam_raw_1, dam_raw_2,
     dam_raw_3, dam_raw_4, dam_raw_5,
                           dam_raw_6, dam_raw_7, dam_raw_8)
+
+#write.csv(dam_complete_raw, "./New Data/dam_complete_raw")
 ```
 
 ## Simple Vis of Dam Data
