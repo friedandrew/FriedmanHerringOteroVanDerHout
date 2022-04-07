@@ -79,22 +79,17 @@ ggplot(flowline) +
 #plot_nhdplus(WAAIMcoords1$MIDLONG, WAAIMcoords1$MIDLAT, streamorder = 3)
 ```
 
-setting up for creating a function to repeat the above
-(possibly not necessary)
-```{r}
-#reference Nick code 
-```
 
-writing the function with defined pieces from above
+writing the function
 **NOTE** 
 this function has been tested and works!!!!
+USE THIS FUNCTION!!!
 ```{r}
-#unsure if flowline, catchment, waterbody need a command to create custom name for each different site
-
-####does this function allow us to track which site is which for futher analysis? 
-extract_flowlines_plot_WAAIM_tidy <- function(ROWNUM){
-  MIDLAT <- WAAIM_tidy$MIDLAT[ROWNUM]
-  MIDLONG <- WAAIM_tidy$MIDLONG[ROWNUM]
+  
+flowenvironment_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
   start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
   start_comid <- discover_nhdplus_id(start_point)
   NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
@@ -109,85 +104,17 @@ extract_flowlines_plot_WAAIM_tidy <- function(ROWNUM){
   flowline <- subset$NHDFlowline_Network
   catchment <- subset$CatchmentSP
   waterbody <- subset$NHDWaterbody
-  cur_plot <-  ggplot(flowline) +
-    geom_sf(fill = "white", color = "gray", lwd = 0.5) +
-    geom_sf(data = flowline, aes(color = streamorde)) +
-    labs(color = "Stream Order") +
-    theme(legend.position = "top")
-  print(cur_plot)
-  return(line)
+  waterlist <- list(flowline, catchment, waterbody)
+  names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(waterlist)
 }
 
-#test of function
-extract_flowlines_plot(1)
-extract_flowlines(2)
-#I think it works!
-
+#trying function
+TestRunList <- flowenvironment_extract("SW-SS-19199")
+TestRunCatchment <- TestRunList$catchment #extracting catchment from the list in the function
+TestRunFlowline <- TestRunList$flowline
 ```
 
-Functions to save shapefiles of catchement and flowlines
-
-```{r}
-#File to save the shapefile of flowlines with
-extract_flowlines_file_WAAIM_tidy <- function(ROWNUM){
-  MIDLAT <- WAAIM_tidy$MIDLAT[ROWNUM]
-  MIDLONG <- WAAIM_tidy$MIDLONG[ROWNUM]
-  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
-  start_comid <- discover_nhdplus_id(start_point)
-  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
-                          mode = "upstreamTributaries", 
-                          distance_km = 1000)
-  subset_file <- tempfile(fileext = ".gpkg")
-  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
-                         output_file = subset_file, #the above temporary file 
-                         nhdplus_data = "download", 
-                         flowline_only = FALSE, 
-                         return_data = TRUE, overwrite = TRUE)
-  flowline <- subset$NHDFlowline_Network
-  return(flowline)
-}
-
-#test
-Site_1 <-  extract_flowlines_file_WAAIM_tidy(1)
-Site_2 <-  extract_flowlines_file_WAAIM_tidy(2)
-
-#attmepting to extract all at once, getting an error
-therows <- rep(1:45)
-
-extract_flowlines_file_WAAIM_tidy(therows) %>% 
-  bind_rows()
-
-#File to save the shapefile of catchments with
-extract_catchments_file_WAAIM_tidy <- function(ROWNUM){
-  MIDLAT <- WAAIM_tidy$MIDLAT[ROWNUM]
-  MIDLONG <- WAAIM_tidy$MIDLONG[ROWNUM]
-  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
-  start_comid <- discover_nhdplus_id(start_point)
-  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
-                          mode = "upstreamTributaries", 
-                          distance_km = 1000)
-  subset_file <- tempfile(fileext = ".gpkg")
-  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
-                         output_file = subset_file, #the above temporary file 
-                         nhdplus_data = "download", 
-                         flowline_only = FALSE, 
-                         return_data = TRUE, overwrite = TRUE)
-  catchment <- subset$CatchmentSP
-  return(catchment)
-}
-
-#Test
-Site_1_catchment <- extract_catchments_file_WAAIM_tidy(1)
-Site_4_catchment <- extract_catchments_file_WAAIM_tidy(4)
-Site_4_flow <- extract_flowlines_file_WAAIM_tidy(4)
-
-#it works!!!
-ggplot(Site_4_catchment) +
-    geom_sf(fill = "white", color = "gray", lwd = 0.5) +
-    geom_sf(data = Site_4_flow, aes(color = streamorde)) +
-    labs(color = "Stream Order") +
-    theme(legend.position = "top")
-```
 
 is there a way to automate / loop extracting the flowlines and catchment for the 45 sites? 
 ```{r}
@@ -211,12 +138,12 @@ Intersecting catchment with dam data
 ```{r}
 #Now intersecting catchment areas with dam data
 dam_complete_raw_crs <-  st_transform(dam_complete_raw, crs = 4269)
-dam_site_4_intersect <- dam_complete_raw_crs[lengths(st_intersects(dam_complete_raw_crs, Site_4_catchment)) > 0,]
+TestRunintersect <- dam_complete_raw_crs[lengths(st_intersects(dam_complete_raw_crs, TestRunFlowline)) > 0,]
 
-ggplot(Site_4_catchment) +
-    geom_sf(fill = "white", color = "gray", lwd = 0.5) +
-    geom_sf(data = Site_4_flow) +
-    geom_sf(data = dam_site_4_intersect, aes(color = Fish.Passage.Catagory))+
+ggplot(TestRunFlowline) +
+    geom_sf(fill = "white", color = "gray", lwd = 0.5, alpha = 0.5) +
+    geom_sf(data = TestRunintersect, aes(color = Fish.Passage.Catagory))+
+    geom_sf(data = TestRunCatchment) +
     labs(color = "Stream Order") 
 
 ```
@@ -262,6 +189,9 @@ Initial notes onCalculating River Distance Options
 #make sure that all of the files are in the same projection before doing the analysis #projection of the basemap is what the other two files should be in 
 ```
 
+**WARNING**
+*unnecessarily complicated code and one giant download*
+*do not attempt unless you have an hour for your machine to freak out*
 ndhplus & intersectr attempt ONE
 https://github.com/USGS-R/intersectr
 ```{r}
@@ -286,10 +216,10 @@ nhdplusTools::get_flowline_index(
 #spatial intersection
 #could be used to intersect dam and sample locations to flow lines? 
 #install.packages("devtools")
-library(devtools)
+#library(devtools)
 #be forewarned -- HUGE DOWNLOAD!!!!
 #devtools::install_github("USGS-R/intersectr")
-library(intersectr)
+#library(intersectr)
 cells <- create_cell_geometry(x_coords, y_coords, nc_projections, catchment)
 poly <- sf::st_as_sf(dplyr::select(catchment, ID = featureid))
 weights <- calculate_area_intersection_weights(cells, poly)
@@ -302,5 +232,112 @@ execute_intersection(nc_file = dap_uri,
                 start_datetime = #"",
                 end_datetime = #"")
 
+```
+
+WARNING
+**STALE CODE BELOW**
+*functional but unnecessary code, has been improved above*
+
+```{r}
+#unsure if flowline, catchment, waterbody need a command to create custom name for each different site
+
+####does this function allow us to track which site is which for futher analysis? 
+extract_flowlines_plot_WAAIM_tidy <- function(ROWNUM){
+  MIDLAT <- WAAIM_tidy$MIDLAT[ROWNUM]
+  MIDLONG <- WAAIM_tidy$MIDLONG[ROWNUM]
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  flowline <- subset$NHDFlowline_Network
+  catchment <- subset$CatchmentSP
+  waterbody <- subset$NHDWaterbody
+  cur_plot <-  ggplot(flowline) +
+    geom_sf(fill = "white", color = "gray", lwd = 0.5) +
+    geom_sf(data = flowline, aes(color = streamorde)) +
+    labs(color = "Stream Order") +
+    theme(legend.position = "top")
+  print(cur_plot)
+  return(line)
+}
+
+#test of function
+extract_flowlines_plot(1)
+extract_flowlines(2)
+#I think it works!
+
+```
+
+Functions to save shapefiles of catchement and flowlines
+
+```{r}
+#File to save the shapefile of flowlines with
+
+extract_flowlines_file_WAAIM_tidy <- function(ROWNUM){
+  MIDLAT <- WAAIM_tidy$MIDLAT[ROWNUM]
+  MIDLONG <- WAAIM_tidy$MIDLONG[ROWNUM]
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  flowline <- subset$NHDFlowline_Network
+  return(flowline)
+}
+
+#test
+Site_1 <-  extract_flowlines_file_WAAIM_tidy(1)
+Site_2 <-  extract_flowlines_file_WAAIM_tidy(2)
+
+
+#attmepting to extract all at once, getting an error
+therows <- rep(1:45)
+
+extract_flowlines_file_WAAIM_tidy(therows) %>% 
+  bind_rows()
+
+#File to save the shapefile of catchments with
+extract_catchments_file_WAAIM_tidy <- function(ROWNUM){
+  MIDLAT <- WAAIM_tidy$MIDLAT[ROWNUM]
+  MIDLONG <- WAAIM_tidy$MIDLONG[ROWNUM]
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  catchment <- subset$CatchmentSP
+  return(catchment)
+}
+
+#Test
+Site_1_catchment <- extract_catchments_file_WAAIM_tidy(1)
+Site_4_catchment <- extract_catchments_file_WAAIM_tidy(4)
+Site_4_flow <- extract_flowlines_file_WAAIM_tidy(4)
+
+#it works!!!
+ggplot(Site_4_catchment) +
+    geom_sf(fill = "white", color = "gray", lwd = 0.5) +
+    geom_sf(data = Site_4_flow, aes(color = streamorde)) +
+    labs(color = "Stream Order") +
+    theme(legend.position = "top")
 ```
 
