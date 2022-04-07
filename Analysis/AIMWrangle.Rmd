@@ -229,9 +229,40 @@ corrplot(WAAIMcorr)
 # customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
 corrplot(WAAIMcorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 
+#That plot is heinous. Too many variables. Separating out the vegetation and hydro ones.
+
+#selecting water quality columns and run correlation
+water_quality <- WAAIM_tidy_numeric %>% 
+  select(c(23:30))
+
+water_corr <- cor(water_quality)
+corrplot(water_corr)
+corrplot(water_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#selecting Biodiversity and Riparian Habitat Quality columns and run correlation
+#left out non-native woody veg b/c 0 for all sites
+riparian_quality <- WAAIM_tidy_numeric %>% 
+  select(c(11:14, 16:22))
+
+rip_corr <- cor(riparian_quality)
+corrplot(rip_corr)
+corrplot(rip_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#selecting Watershed Function and Instream Habitat Quality and run correlation
+instream_quality <- WAAIM_tidy_numeric %>% 
+  select(c(31:45))
+
+inst_corr <- cor(instream_quality)
+corrplot(inst_corr)
+corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
 #doc = dissolved organic carbon, more forest, higher slope correlated with more forest cover probs b/c harder to develop higher slope areas, bigger lakes correlated with deeper lakes. The size and color both change similarly for the correlation. 
 
 #Once have correlation plot can run an AIC to decide what to actually include in your model. Can also do a lasso or other. These are parametric. Machine learning method can also be used to choose a subset. 
+```
+
+```{r AIC}
+
 ```
 
 
