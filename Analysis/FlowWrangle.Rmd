@@ -79,7 +79,7 @@ ggplot(flowline) +
 
 setting up for creating a function to repeat the above
 ```{r}
-
+#reference Nick code 
 ```
 
 writing the function with defined pieces from above
@@ -87,7 +87,7 @@ writing the function with defined pieces from above
 this function has not been tested!!
 ```{r}
 #unsure if $ is needed for site,lat,long
-#unsure if flowline, catchment, waterbody need a command to create custom name for each different site
+#unsure if flowline, catchment, waterbody need a command to create custom name for each different site, but in 
 
 extract_flowlines <- function(SITE_CD, MIDLAT, MIDLONG){
   start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
