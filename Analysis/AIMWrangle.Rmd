@@ -19,6 +19,7 @@ library(tidyverse)
 library(lubridate)
 library(sf)
 library(corrplot)
+library(dplyr)
 theme_set(theme_light())
 ```
 
@@ -191,41 +192,40 @@ See 06_Lab_GLMs.Rmd for outline and guides to selecting appropriate statistical 
 
 #If we wanted to explore some of the other variables that might help predict lake water quality, the function `corrplot` will allow us to create a correlation matrix whereby we can assess the correlations among various variables. We could then use this exploration to inform classification and/or covariate analysis with stressor-response modeling. 
 
-# putting possible covariates that may affect the water quality together
-LAGOScovariates <- LAGOSjoined %>%
-  mutate(percentdeveloped = buffer500m_nlcd2011_pct_22 + buffer500m_nlcd2011_pct_23 + buffer500m_nlcd2011_pct_24,
-         percentforest = buffer500m_nlcd2011_pct_41 + buffer500m_nlcd2011_ha_42 + buffer500m_nlcd2011_ha_43,
-         percentrowcrops = buffer500m_nlcd2011_pct_82) %>%
-  select(chla, tn, tp, doc, secchi,
-         maxdepth,lake_area_ha, buffer500m_slope_mean,
-         percentdeveloped, percentforest, percentrowcrops)
+# Specify columns want to change to numeric
+#Change integer columns to numeric b/c corr can only be run on numeric columns
 
-#need to keep as one dataset b/c cannot join sf datasets as we have others
-WAAIM_tidy_numeric <- WAAIM_tidy %>% 
-  select(OBJECTID, NON_NTVE_WDY, NTVE_WDY, NON_NTVE_HRB, NTVE_HRB, SDGE_RSH, OBSRVD_INVRT_RCHNSS, MACROINVRTBRTE_CNT, NumberPools, D16, D84, D50, BNK_STBLTY, BNK_CVR_LWD)
+i <- c(1, 6, 17:22, 24, 35, 40:44)  
 
-i <- c(2:15)  # Specify columns you want to change
-
-
-WAAIM_tidy_numeric[ , i] <- apply(WAAIM_tidy_numeric[ , i], 2,            # Specify own function within apply
+#convert the columns indicated in i above to numeric
+WAAIM_tidy[ , i] <- apply(WAAIM_tidy[ , i], 2,            # Specify own function within apply
                     function(x) as.numeric(as.character(x)))
 
-sapply(WAAIM_tidy_numeric, class)
+#check that the all integers except for object ID are now numeric
+sapply(WAAIM_tidy, class)
 
-merge(WAAIM_tidy, WAAIM_tidy_numeric, by='OBJECTID')
+#drop nas so can run a corr
+WAAIM_tidy <- drop_na(WAAIM_tidy)
 
+#select for numeric columns to run the corr on
+WAAIM_tidy_numeric <- WAAIM_tidy %>%
+  select(c(1,4:47))
 
-# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use cor to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. the dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
-WAAIMcorr <- cor(WAAIM_tidy)
+#drop the geometry column cor b/c cor only runs on numeric columns
+WAAIM_tidy_numeric <- st_set_geometry(WAAIM_tidy_numeric, NULL)
 
-?cor
+#check if geometry column removed
+head(WAAIM_tidy_numeric)
+
+# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. the dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
+WAAIMcorr <- cor(WAAIM_tidy_numeric)
 
 # Intro Corrplot
 # plot correlation matrix.
-corrplot(LAGOScorr)
+corrplot(WAAIMcorr)
 
 # customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
-corrplot(LAGOScorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+corrplot(WAAIMcorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 
 #doc = dissolved organic carbon, more forest, higher slope correlated with more forest cover probs b/c harder to develop higher slope areas, bigger lakes correlated with deeper lakes. The size and color both change similarly for the correlation. 
 
