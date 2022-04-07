@@ -83,10 +83,10 @@ ggplot(flowline) +
 writing the function
 **NOTE** 
 this function has been tested and works!!!!
-USE THIS FUNCTION!!!
+USE THESE FUNCTIONS!!!
 ```{r}
   
-flowenvironment_extract <- function(site_id){
+flowline_extract <- function(site_id){
   selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
   MIDLAT <- selectingsites$MIDLAT
   MIDLONG <- selectingsites$MIDLONG
@@ -102,35 +102,75 @@ flowenvironment_extract <- function(site_id){
                          flowline_only = FALSE, 
                          return_data = TRUE, overwrite = TRUE)
   flowline <- subset$NHDFlowline_Network
-  catchment <- subset$CatchmentSP
-  waterbody <- subset$NHDWaterbody
-  waterlist <- list(flowline, catchment, waterbody)
-  names(waterlist) = c("flowline", "catchment", "waterbody")
-  return(waterlist)
+  #catchment <- subset$CatchmentSP
+  #waterbody <- subset$NHDWaterbody
+  #waterlist <- list(flowline, catchment, waterbody)
+  #names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(flowline)
 }
 
-#trying function
-TestRunList <- flowenvironment_extract("SW-SS-19199")
-TestRunCatchment <- TestRunList$catchment #extracting catchment from the list in the function
-TestRunFlowline <- TestRunList$flowline
+catchment_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  #flowline <- subset$NHDFlowline_Network
+  catchment <- subset$CatchmentSP
+  #waterbody <- subset$NHDWaterbody
+  #waterlist <- list(flowline, catchment, waterbody)
+  #names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(catchments)
+}
+
+testtest <- flowline_extract("SW-SS-19199")
+
+
 ```
 
 
-is there a way to automate / loop extracting the flowlines and catchment for the 45 sites? 
+automating the extraction of the flowlines and catchment for the 45 sites? 
 ```{r}
+#workshopping this 
+site_name_vector <- WAAIM_tidy %>% pull(SITE_CD)
 
-#probably not using this version of a for loop? 
-#create a "list" of site IDs plus lat and long? 
-#look into AO9 utilities data scraping hw to use rbind to make a cumulative dataframe as function iterates 
-#that piece would go into the for loop 
-
-for (i in list){
-  WAAIMcoords <- WAAIM_tidy %>% 
-  filter(SITE_CD == i) %>% 
-  select(SITE_CD, MIDLAT, MIDLONG) #is it i or SITE_CD here? 
-  extract_flowlines(i, MIDLAT, MIDLONG)
-  #add piece from above on building cumulative dataframe
+flowline_outer_frame <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ #took out [1:3] after site_name_vector
+  cur_function_result <- flowline_extract(cur_site_name)
+  head(cur_function_result)
+  flowline_outer_frame <- rbind(outer_frame,cur_function_result)
 }
+
+write.csv(outer_frame, "New Data/flowlinesall.csv")
+outer_frame %>% names() #inside of here is a thing called PATHLENGTH which is what we need to extract the distances! 
+
+catchment_outer_frame <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ #took out [1:3] after site_name_vector
+  cur_function_result <- flowline_extract(cur_site_name)
+  head(cur_function_result)
+  catchment_outer_frame <- rbind(outer_frame,cur_function_result)
+}
+write.csv(outer_frame, "New Data/catchmentsall.csv")
+
+```
+
+some viz
+```{r}
+tmap_mode("view")
+tm_shape(outer_frame) + tm_lines() +
+  tm_shape(WAAIM_tidy) + tm_dots() 
+  #tm_shape(dam_complete_raw)+ tm_dots(col="red")
+
+#need to clip the dam data to only be present for the sample site catchments 
 ```
 
 
@@ -143,8 +183,34 @@ TestRunintersect <- dam_complete_raw_crs[lengths(st_intersects(dam_complete_raw_
 ggplot(TestRunFlowline) +
     geom_sf(fill = "white", color = "gray", lwd = 0.5, alpha = 0.5) +
     geom_sf(data = TestRunintersect, aes(color = Fish.Passage.Catagory))+
-    geom_sf(data = TestRunCatchment) +
+    #geom_sf(data = TestRunCatchment) +
     labs(color = "Stream Order") 
+
+```
+
+extracting lengths between dams and AIM on flowline
+Part One 1:
+---
+Dam ID | COM_ID | Dam_Path_Length | AIM_ID
+---
+Part 2:
+AIM_SI | COM_ID | Dam_Path_Length
+---
+THEN joing the two on ??
+```{r}
+#get the com_ID for a lat long then attach it to anything in the NHD
+#you really want the path length, which is the distance to the outlet 
+#get the aim site pathway, and take the difference between the two 
+#that is the distance 
+mutate(DistanceToDam = Dam_Path_Length - AIM_Path_Length)
+
+st_nearest_feature()
+#can be used on dam sites to return the COM_ID that is nearest to it 
+
+#how to attach to COM_ID
+
+#you can use those catchment polygons to subset at dataset 
+#polygons can be joined to represent a whole aim site 
 
 ```
 
@@ -154,6 +220,36 @@ Indexing flowlines
 This code is from: https://usgs-r.github.io/nhdplusTools/articles/indexing.html
 And has not been edited for our data
 ```{r}
+
+# \donttest{
+
+source(system.file("extdata", "sample_flines.R", package = "nhdplusTools"))
+
+point <- sf::st_sfc(sf::st_point(c(-76.87479, 39.48233)),
+                    crs = 4326)
+
+get_flowline_index(sample_flines, point)
+
+point <- sf::st_transform(point, 5070)
+
+get_flowline_index(sample_flines, point,
+                   search_radius = units::set_units(200, "m"))
+
+get_flowline_index("download_nhdplusv2", point)
+
+get_flowline_index(sample_flines, point, precision = 30)
+
+get_flowline_index(sample_flines,
+                   sf::st_sfc(list(sf::st_point(c(-76.86934, 39.49328)),
+                                   sf::st_point(c(-76.91711, 39.40884)),
+                                   sf::st_point(c(-76.88081, 39.36354))),
+                              crs = 4326),
+                   search_radius = units::set_units(0.2, "degrees"),
+                   max_matches = 10)
+
+# }
+
+
 indexes <- get_flowline_index(sf::st_transform(flowlines, 5070), # albers
                               sf::st_transform(sf::st_geometry(gages), 5070), 
                               search_radius = units::set_units(200, "meters"), 
