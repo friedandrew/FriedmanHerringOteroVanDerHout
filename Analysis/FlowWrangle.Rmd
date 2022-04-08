@@ -174,7 +174,7 @@ tm_shape(outer_frame) + tm_lines() +
 ```
 
 
-Intersecting catchment with dam data
+Intersecting flowlines with dam data
 ```{r}
 #Now intersecting catchment areas with dam data
 dam_complete_raw_crs <-  st_transform(dam_complete_raw, crs = 4269)
