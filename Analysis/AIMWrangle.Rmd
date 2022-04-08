@@ -252,27 +252,26 @@ inst_corr <- cor(instream_quality)
 corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
-## Results of the correlation check
+## Results of the correlation check -> update once add the number of dams in
 
-Water Quality: 
+Water Quality
 
 Biodiversity and Riparian Habitat Quality
 
 Watershed Function and Instream Habitat Quality
 
 
-
 ```{r AIC}
-#select the variables from the correlation plots 
+#select the variables from the correlation plots, save this for further analyses 
 
-AIM_AIC <- lm(data = AIM_AIC_data, tp_ug ~ depth + dissolvedOxygen + 
-              temperature_C + tn_ug + po4)
-
-#Choose a model by AIC in a Stepwise Algorithm
-step(AIM_AIC)
-AIMmodel <- lm(data = Paul.naomit, tp_ug ~ dissolvedOxygen + temperature_C + tn_ug)
-summary(AIMmodel)
-```
+# AIM_AIC <- lm(data = AIM_AIC_data, tp_ug ~ depth + dissolvedOxygen + 
+#               temperature_C + tn_ug + po4)
+# 
+# #Choose a model by AIC in a Stepwise Algorithm
+# step(AIM_AIC)
+# AIMmodel <- lm(data = Paul.naomit, tp_ug ~ dissolvedOxygen + temperature_C + tn_ug)
+# summary(AIMmodel)
+# ```
 
 
 ```{r}
