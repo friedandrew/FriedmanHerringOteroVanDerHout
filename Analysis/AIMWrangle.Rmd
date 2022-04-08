@@ -128,41 +128,41 @@ Calculating River Distance Options
 ndhplus & intersectr attempt
 https://github.com/USGS-R/intersectr
 ```{r}
-library(nhdplusTools)
-site <- list(featureSource = #"nwissite",
-               featureID = #"USGS-10128500")
-line <- navigate_nldi(site, "UT", "")
-site <- navigate_nldi(site, "UT", #"nwissite")
-
-nhdp <- subset_nhdplus(#ut$nhdplus_comid,
-                       #"nhdp_subset.gpkg",
-                      #"download")
-  
-nhdplusTools::get_flowline_index(
-  points = sites, 
-  flines = flowline,
-  searchradius = 100, #units of flowlines
-  precision = 10), #max node spacing
-
-#spatial intersection
-#could be used to intersect dam and sample locations to flow lines? 
-#install.packages("devtools")
-library(devtools)
-#be forewarned -- HUGE DOWNLOAD!!!!
-#devtools::install_github("USGS-R/intersectr")
-library(intersectr)
-cells <- create_cell_geometry(x_coords, y_coords, nc_projections, catchment)
-poly <- sf::st_as_sf(dplyr::select(catchment, ID = featureid))
-weights <- calculate_area_intersection_weights(cells, poly)
-dap_uri <- "#metadatalink"
-execute_intersection(nc_file = dap_uri,
-                     variable name = #"precipitation_amount", 
-                intersection_weights = weights,
-                cell_geometry = data_source_cells,
-                x_var = x_coord, y_var = y_coord, t_var = t_coord, 
-                start_datetime = #"",
-                end_datetime = #"")
-
+# library(nhdplusTools)
+# site <- list(featureSource = #"nwissite",
+#                featureID = #"USGS-10128500")
+# line <- navigate_nldi(site, "UT", "")
+# site <- navigate_nldi(site, "UT", #"nwissite")
+# 
+# nhdp <- subset_nhdplus(#ut$nhdplus_comid,
+#                        #"nhdp_subset.gpkg",
+#                       #"download")
+#   
+# nhdplusTools::get_flowline_index(
+#   points = sites, 
+#   flines = flowline,
+#   searchradius = 100, #units of flowlines
+#   precision = 10), #max node spacing
+# 
+# #spatial intersection
+# #could be used to intersect dam and sample locations to flow lines? 
+# #install.packages("devtools")
+# library(devtools)
+# #be forewarned -- HUGE DOWNLOAD!!!!
+# #devtools::install_github("USGS-R/intersectr")
+# library(intersectr)
+# cells <- create_cell_geometry(x_coords, y_coords, nc_projections, catchment)
+# poly <- sf::st_as_sf(dplyr::select(catchment, ID = featureid))
+# weights <- calculate_area_intersection_weights(cells, poly)
+# dap_uri <- "#metadatalink"
+# execute_intersection(nc_file = dap_uri,
+#                      variable name = #"precipitation_amount", 
+#                 intersection_weights = weights,
+#                 cell_geometry = data_source_cells,
+#                 x_var = x_coord, y_var = y_coord, t_var = t_coord, 
+#                 start_datetime = #"",
+#                 end_datetime = #"")
+                  
 ```
 
 
@@ -190,9 +190,6 @@ For example, comparing the means of a series of analytes that are and are not wi
 See 06_Lab_GLMs.Rmd for outline and guides to selecting appropriate statistical tests. 
 
 ```{r correlation-check}
-## Covariates - Cat is working on modifying this WDA code for our project
-
-#If we wanted to explore some of the other variables that might help predict lake water quality, the function `corrplot` will allow us to create a correlation matrix whereby we can assess the correlations among various variables. We could then use this exploration to inform classification and/or covariate analysis with stressor-response modeling. 
 
 # Specify columns want to change to numeric
 #Change integer columns to numeric b/c corr can only be run on numeric columns
@@ -219,17 +216,16 @@ WAAIM_tidy_numeric <- st_set_geometry(WAAIM_tidy_numeric, NULL)
 #check if geometry column removed
 head(WAAIM_tidy_numeric)
 
-# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. the dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
+# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. The dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
 WAAIMcorr <- cor(WAAIM_tidy_numeric)
 
-# Intro Corrplot
 # plot correlation matrix.
 corrplot(WAAIMcorr)
 
 # customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
 corrplot(WAAIMcorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 
-#That plot is heinous. Too many variables. Separating out the vegetation and hydro ones.
+#That plot is heinous. Too many variables. Checking correlation between varibales that are categorized together in the AIM metadata.
 
 #selecting water quality columns and run correlation
 water_quality <- WAAIM_tidy_numeric %>% 
@@ -255,14 +251,27 @@ instream_quality <- WAAIM_tidy_numeric %>%
 inst_corr <- cor(instream_quality)
 corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
-
-#doc = dissolved organic carbon, more forest, higher slope correlated with more forest cover probs b/c harder to develop higher slope areas, bigger lakes correlated with deeper lakes. The size and color both change similarly for the correlation. 
-
-#Once have correlation plot can run an AIC to decide what to actually include in your model. Can also do a lasso or other. These are parametric. Machine learning method can also be used to choose a subset. 
 ```
+## Results of the correlation check
+
+Water Quality: 
+
+Biodiversity and Riparian Habitat Quality
+
+Watershed Function and Instream Habitat Quality
+
+
 
 ```{r AIC}
+#select the variables from the correlation plots 
 
+AIM_AIC <- lm(data = AIM_AIC_data, tp_ug ~ depth + dissolvedOxygen + 
+              temperature_C + tn_ug + po4)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(AIM_AIC)
+AIMmodel <- lm(data = Paul.naomit, tp_ug ~ dissolvedOxygen + temperature_C + tn_ug)
+summary(AIMmodel)
 ```
 
 
