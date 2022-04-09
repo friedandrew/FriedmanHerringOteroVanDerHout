@@ -60,7 +60,7 @@ rm(dam_raw_0, dam_raw_1, dam_raw_2,
     dam_raw_3, dam_raw_4, dam_raw_5,
                           dam_raw_6, dam_raw_7, dam_raw_8)
 
-#write.csv(dam_complete_raw, "./New Data/dam_complete_raw")
+#write.csv(dam_complete_raw, "./New Data/dam_complete_raw.csv")
 ```
 
 ## Simple Vis of Dam Data
@@ -86,8 +86,8 @@ WAAIM_tidy <- WAAIM %>%
 rm(AIMraw)
 rm(WAAIM)
 
-
-counties_sf<- st_read('./Data/cb_2018_us_county_20m.shp') %>% 
+getwd()
+counties_sf<- st_read('./New Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) #Filter for just WA Counties
 
 counties_sf_utm <- st_transform(counties_sf, crs = 26910)
@@ -124,6 +124,157 @@ ggplot(data = dam_intersect)+
   
 
 ```
+
+## Functions for flowlines and catchements from FlowWrangle
+
+```{r}
+flowline_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  flowline <- subset$NHDFlowline_Network
+  #catchment <- subset$CatchmentSP
+  #waterbody <- subset$NHDWaterbody
+  #waterlist <- list(flowline, catchment, waterbody)
+  #names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(flowline)
+}
+
+catchment_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  #flowline <- subset$NHDFlowline_Network
+  catchment <- subset$CatchmentSP
+  #waterbody <- subset$NHDWaterbody
+  #waterlist <- list(flowline, catchment, waterbody)
+  #names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(catchment)
+}
+
+```
+testing dam intersect with extracted watersheds
+
+```{r}
+Intersect_test_1_catchment <- catchment_extract(WAAIM_tidy_utm$SITE_CD[2])
+Intersect_test_1_flowline <- flowline_extract(WAAIM_tidy_utm$SITE_CD[2])
+Intersect_test_1_catchment_utm <- st_transform(Intersect_test_1_catchment, crs = 26910)
+Intersect_test_1_flowline_utm <- st_transform(Intersect_test_1_flowline, crs = 26910)
+
+dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
+dam_intersect_test_catch <- dam_complete_raw_utm[lengths(
+  st_intersects(dam_complete_raw_utm, Intersect_test_1_catchment_utm)) > 0,]
+dam_intersect_test_flow <- dam_complete_raw_utm[lengths(
+  st_intersects(dam_complete_raw_utm, Intersect_test_1_flowline_utm)) > 0,]
+#the dam will only intersect with the catchment data, not the flowline data. Need to trouble shoot how to add buffer to flowlines so that the dam sites are captured and can be pinned to the flowlines for calculation.
+
+ggplot(Intersect_test_1_catchment)+
+  geom_sf()+
+  geom_sf(data = Intersect_test_1_flowline)+
+  geom_sf(data = dam_complete_raw, aes(color = "dark red"))
+
+
+```
+
+##Writing fuction to intersect dams with catchment
+
+```{r}
+#separate function requires extract function first
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(
+  st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
+
+Site_5 <- catchment_extract(WAAIM_tidy$SITE_CD[5])
+Site_5_Dams <- Dam_catchment_intersect(Site_5, dam_complete_raw)
+ggplot(Site_5)+
+  geom_sf()+
+  geom_sf(data = Site_5_flow, color = "dark blue")+
+  geom_sf(data = Site_5_Dams, aes(color = "dark red"))
+
+#getting summary stats of dams and joining it to waaim_tidy
+Site_5_Dams_number <- dim(Site_5_Dams)[1]
+Site_5_Dams_summary <-  as.data.frame(summary(as.factor(Site_5_Dams$Fish.Passage.Catagory)))
+Site_5_Dams_summary$Dam.type <- row.names(Site_5_Dams_summary)
+Site_5_Dams_summary <- Site_5_Dams_summary %>% 
+  pivot_wider(names_from = Dam.type, values_from = `summary(as.factor(Site_5_Dams$Fish.Passage.Catagory))`) %>% 
+  mutate(SITE_CD = WAAIM_tidy$SITE_CD[5])
+
+
+dam_catchment_summary <- Site_5_Dams_summary
+#It works!
+
+
+
+```
+
+## now writing function to do the whole process start to finish
+
+```{r}
+#This function works, but only the first time it is used. Subsequent uses to aggregate data into one spreadsheet doesnt work..
+Dam_WAAIM_Join_function <- function(WAAIM_ROW_NUM, WAAIM_DATA, DAM_DATA){
+  site_id <- WAAIM_DATA$SITE_CD[WAAIM_ROW_NUM]
+  site_catchment <- catchment_extract(site_id)
+  site_dams <- Dam_catchment_intersect(site_catchment, DAM_DATA)
+  #site_dams_summary <- as.data.frame(summary(as.factor(site_dams$Fish.Passage.Catagory)))  This is trying to get how many dams of each class
+ # site_dams_summary$Dam.type <- row.names(site_dams_summary)
+ # site_dams_summary <- site_dams_summary %>% 
+    #pivot_wider(names_from = Dam.type, values_from = `summary(as.factor(site_dams$Fish.Passage.Catagory))`) %>% 
+  #mutate(SITE_CD = WAAIM_DATA$SITE_CD[WAAIM_ROW_NUM])
+  dams_number <- dim(site_dams)[1]
+  return(dams_number)
+}
+
+#Plan is to create summary for all sites, then r bind together, then left join to waaim using site ID. I dont know how to make everything have the same number of rows if there are missing values...
+dam_catchment_summary_1 <- Dam_WAAIM_Join_function(1,WAAIM_tidy,dam_complete_raw)
+dam_catchment_summary_2 <- Dam_WAAIM_Join_function(2,WAAIM_tidy,dam_complete_raw)
+dam_catchment_summary_3 <- Dam_WAAIM_Join_function(3,WAAIM_tidy,dam_complete_raw)
+dam_catchment_summary_4 <- Dam_WAAIM_Join_function(4,WAAIM_tidy,dam_complete_raw)
+dam_catchment_summary_5 <- Dam_WAAIM_Join_function(5,WAAIM_tidy,dam_complete_raw)
+
+
+result <- data.frame(matrix(nrow = 45, ncol = 2))
+for(i in 1:dim(WAAIM_tidy)[1] ){
+result[i,1] <-  Dam_WAAIM_Join_function(i,WAAIM_tidy,dam_complete_raw)
+result[i,2] <- WAAIM_tidy$SITE_CD[i]
+}
+#THE FOR LOOP WORKED AND I FEEL SO POWERFUL
+
+result$SITE_CD <-  result$X2
+result <- result %>% 
+  rename("Number_of_dams_upstream" = X1)
+
+WAAIM_tidy_dams <- left_join(WAAIM_tidy, result)
+
+write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
+
+```
+
 
 
 

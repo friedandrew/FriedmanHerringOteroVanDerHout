@@ -129,11 +129,12 @@ catchment_extract <- function(site_id){
   #waterbody <- subset$NHDWaterbody
   #waterlist <- list(flowline, catchment, waterbody)
   #names(waterlist) = c("flowline", "catchment", "waterbody")
-  return(catchments)
+  return(catchment)
 }
 
 testtest <- flowline_extract("SW-SS-19199")
-
+ggplot(testtest)+
+  geom_sf()
 
 ```
 
@@ -174,7 +175,7 @@ tm_shape(outer_frame) + tm_lines() +
 ```
 
 
-Intersecting catchment with dam data
+Intersecting flowlines with dam data
 ```{r}
 #Now intersecting catchment areas with dam data
 dam_complete_raw_crs <-  st_transform(dam_complete_raw, crs = 4269)
