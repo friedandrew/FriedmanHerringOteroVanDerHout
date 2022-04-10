@@ -252,6 +252,76 @@ inst_corr <- cor(instream_quality)
 corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
+
+#correlation with upstream dams
+```{r dam correlation}
+#read in updated data with number of upstream dams attached. Warning is okay.
+WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+
+head(WAAIM_tidy_dams)
+
+#select out the numberof dams upstream column
+upstream_dams <- WAAIM_tidy_dams %>% 
+  select(OBJECTID, Number_of_dams_upstream)
+
+view(upstream_dams)
+
+#change both columns to numeric
+
+numb <- c(1,2)  
+
+upstream_dams[ , numb] <- apply(upstream_dams[ , numb], 2,            # Specify own function within apply
+                    function(x) as.numeric(as.character(x)))
+
+sapply(upstream_dams, class)
+
+#merge the dfs, must be the same class to merge
+WAAIM_tidy_dams_merge = WAAIM_tidy_numeric %>% left_join(upstream_dams,by="OBJECTID")
+WAAIM_tidy_dams_merge
+
+head(WAAIM_tidy_dams_merge)
+
+# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. The dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
+WAAIMcorr <- cor(WAAIM_tidy_dams_merge)
+
+# plot correlation matrix.
+corrplot(WAAIMcorr)
+
+# customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
+corrplot(WAAIMcorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#That plot is heinous. Too many variables. Checking correlation between variables that are categorized together in the AIM metadata.
+
+#selecting water quality columns and number of dams and run correlation
+water_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(23:30, 46))
+
+water_corr <- cor(water_quality)
+corrplot(water_corr)
+corrplot(water_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#selecting Biodiversity and Riparian Habitat Quality columns and number of dams and run correlation
+#left out non-native woody veg b/c 0 for all sites
+riparian_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(11:14, 16:22, 46))
+
+rip_corr <- cor(riparian_quality)
+corrplot(rip_corr)
+corrplot(rip_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#selecting Watershed Function and Instream Habitat Quality and number of dams and run correlation
+instream_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(31:46))
+
+inst_corr <- cor(instream_quality)
+corrplot(inst_corr)
+corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+```
+
+
+
+
 ## Results of the correlation check -> update once add the number of dams in
 
 Water Quality
