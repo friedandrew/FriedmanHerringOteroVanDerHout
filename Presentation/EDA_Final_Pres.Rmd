@@ -1,32 +1,72 @@
 ---
-title: "Washington Dams and Water Quality"
-author: "Jackie Van Der Hout, Andrew Friedman-Herring, Catherine Otero"
+title: "Washington Dams and AIM Gage Sites"
+author: "Jackie Van Der Hout, Andrew Friedman-Herring, & Catherine Otero"
 date: "4/11/2022"
 output: ioslides_presentation
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+library(sf)
+library(corrplot)
+library(dplyr)
+theme_set(theme_light())
 ```
 
 ## Research Questions
 
-- 
--
--
+- How many dams are upstream of the gage sites?
+- How do the variables measured at each gage site correlate?
+- How do the number of dams correlate with the AIM variables?
 
 ## Why ask?
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
+- See the extent of the damming in Washington
+- See the impact of dams on AIM variables
 
-## Slide with R Output
+## What data did we use?
+- BLM Assessment, Inventory, and
+Monitoring (AIM) Data
+-
+-
 
+## Water Quality Correlation Plot
+```{r correlation plots, echo=FALSE}
+WAAIM_tidy_dams_merge <- read.csv("./New Data/WAAIM_tidy_dams_merge.csv")
 
-## Slide with Plot
+water_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(23:30, 46))
 
-```{r pressure}
-plot(pressure)
+water_corr <- cor(water_quality)
+corrplot(water_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
+
+## Biodiversity and Riparian Habitat Quality Correlation Plot
+```{r}
+#selecting Biodiversity and Riparian Habitat Quality columns and number of dams and run correlation
+#left out non-native woody veg b/c 0 for all sites
+riparian_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(11:14, 16:22, 46))
+
+rip_corr <- cor(riparian_quality)
+corrplot(rip_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+```
+
+## Watershed Function and Instream Habitat Quality Correlation Plot
+```{r}
+
+#selecting Watershed Function and Instream Habitat Quality and number of dams and run correlation
+instream_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(31:46))
+
+inst_corr <- cor(instream_quality)
+corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+```
+
+
+## Next Steps
+- Running an AIC
+- Running regression
 

@@ -255,7 +255,7 @@ corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black"
 
 #correlation with upstream dams
 ```{r dam correlation}
-#read in updated data with number of upstream dams attached. Warning is okay.
+#read in updated data with number of upstream dams attached. Ignore Warning.
 WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
 
 head(WAAIM_tidy_dams)
@@ -280,6 +280,8 @@ WAAIM_tidy_dams_merge = WAAIM_tidy_numeric %>% left_join(upstream_dams,by="OBJEC
 WAAIM_tidy_dams_merge
 
 head(WAAIM_tidy_dams_merge)
+
+#write.csv(WAAIM_tidy_dams_merge, "./New Data/WAAIM_tidy_dams_merge.csv", row.names = FALSE)
 
 # create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. The dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
 WAAIMcorr <- cor(WAAIM_tidy_dams_merge)
@@ -318,17 +320,6 @@ corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 
 ```
-
-
-
-
-## Results of the correlation check -> update once add the number of dams in
-
-Water Quality
-
-Biodiversity and Riparian Habitat Quality
-
-Watershed Function and Instream Habitat Quality
 
 
 ```{r AIC}
