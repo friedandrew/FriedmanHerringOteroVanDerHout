@@ -158,8 +158,6 @@ corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black"
 
 # Rationale and Research Questions
 
-
-
 \newpage
 
 # Dataset Information
@@ -181,12 +179,11 @@ corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black"
 
 
 
-## Question 1: <insert specific question here and add additional subsections for additional questions below, if needed>
+## Question 1: How many dams are upstream of each sample site?
 
-## Question 2: 
+## Question 2: How do the AIM variables correlate with each other?
 
-
-
+## Question 3: How does the number of dams correlate with the AIM variables?
 
 \newpage
 
