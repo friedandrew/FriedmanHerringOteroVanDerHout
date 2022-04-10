@@ -34,7 +34,7 @@ library(dplyr)
 # Set your ggplot theme
 theme_set(theme_light())
 
-# Import Data
+# Import AIM Data
 AIMraw <- st_read("https://gis.blm.gov/arcgis/rest/services/hydrography/BLM_Natl_AIM_AquADat/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson&__ncforminfo=VmJvrSyZd1Eo2ftYuiZ2Csv3FXy8H7XoE-xtqGWFdpLoXXM_QrLBbJY-BtmB02LSjkYezZWjgMjkUQTDa0n0d7ugIiEzsdKzv1tB192rp3qdK8SWS-T_Vwxqlc6whlbENi3rrg4YqK40tpTjt0dJVWg3xwroBXxhGKT92BiR7Culk8jsk8g8cxPipo1GHHZ4oF9OZUqX8NX8gOXR3zsQRZxWmOIrkcEnN_JahqrcNjjDJXXh9ysVhdPK7UcQiEvMZy-n3fIQzqq-3YFqLGCq4ffzvu0ww4Pie6NuZD2CDkf9rilS-omAyiQq1LFJ0wVAl6PywwAseMQ4f6cDJXwLDn3BcTI3WP22jrsBYXm8SzrUZs5SGhJtMOOHN1-UMdNDFrO9rqMUXOQCTyKsmhFUFerLorYSAmMVohzr7cD03LvvdSkAQXKQpHQIcFuRqac69tN3eVlyV2IfsAA8yEcpU1GJKJx4jhwaVdXX9Sv4P1ACPp9mj3yqQ5zJqgAg0aFS6Z2O4GEd2B970yfKnbeicnbkgJTSCx0BQy3gtgkxCKujAYcWeMkvV5-dYcNF7lYQRaYvX8Eod5GUIbo8N8VNPF_USB9ZCQnlesBXLVMHXSOwH_bSq49wabgeZ2ZT7aZbJ1X8M_lXzzFieFrPzSKoOK_8_Bqcfde-Hdo8Jupndsn17KsTbpSH51tbBXOC6-3NJ0oBQuZAPkZ1I3pzzqb8sTFxIpYo2ia5lSHrZ5H-gxd753QRaQJBk1xWTyWgy8mON5hZYexZrjjUH4_C_SbY0Q%3D%3D")
 
 ```
@@ -62,10 +62,99 @@ summary()
 WAAIM_tidy <- WAAIM %>% 
   select(OBJECTID, SITE_CD, "StreamName" = STRM_NM, MIDLAT, MIDLONG, "StreamOrder" = STRM_ORDR, BTMLAT, BTMLONG, TRLAT, TRLONG, "ReachLength" = TOT_RCH_LEN, "PercentCover" = PCT_OVRHD_CVR, VEG_CMPLXTY, RPRN_VEG_CNPY_CVR, RPRN_VEG_UNDRSTRY_CVR, RPRN_VEG_GC, NON_NTVE_WDY, NTVE_WDY, NON_NTVE_HRB, NTVE_HRB, SDGE_RSH, OBSRVD_INVRT_RCHNSS, EXPCTD_INVRT_RCHNSS, MACROINVRTBRTE_CNT, "TotalN" = TTL_N, "PredictedN" = PRD_TTL_N, "TotalP" = TTL_P, "PredictedP" = PRD_TTL_P, "SpC" = SPCFC_CNDCTNCE, "PredictedSpC" = PRD_SPCFC_CNDCTNCE, pH, INSTNT_TEMP, "PercentPools" = PCT_PL, "AvgPoolDepth" = RES_PL_DEP, "NumberPools" = NM_PL, LWD_FREQ, "LWDVolume" = LWD_VL, "PercentFines2" = PCT_FN2, "PercentFines6" = PCT_FN6, D16, D84, D50, BNK_STBLTY, BNK_CVR_LWD, BNKFLL_HT, INCSN_HT, CHN_INCSN, THLWG_DEP_MN, PCT_DRY, BNKFLL_WT, WTTD_WT, "FloodWidth" = FLD_WT, "EntrenchmentRatio" = ENTRCH, SLPE, SNSTY, BVR_SGN, geometry)
 
+#remove WAAIM raw
 rm(WAAIM)
 ```
 
+# Corelation Check on AIM Data
+```{r correlation check}
+#Specify columns want to change to numeric
+#Change integer columns to numeric b/c corr can only be run on numeric columns
 
+i <- c(1, 6, 17:22, 24, 35, 40:44)  
+
+#convert the columns indicated in i above to numeric
+WAAIM_tidy[ , i] <- apply(WAAIM_tidy[ , i], 2,            # Specify own function within apply
+                    function(x) as.numeric(as.character(x)))
+
+#check that all columns we want are integers
+sapply(WAAIM_tidy, class)
+
+#drop nas so can run a corr, narrows down our data
+WAAIM_tidy <- drop_na(WAAIM_tidy)
+
+#select for numeric columns to run the corr on
+WAAIM_tidy_numeric <- WAAIM_tidy %>%
+  select(c(1,4:47))
+
+#drop the geometry column b/c cor only runs on numeric columns
+WAAIM_tidy_numeric <- st_set_geometry(WAAIM_tidy_numeric, NULL)
+
+#check if geometry column removed
+head(WAAIM_tidy_numeric)
+
+#read in updated data with number of upstream dams attached. Warning is okay.
+WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+
+head(WAAIM_tidy_dams)
+
+#select out the number of dams upstream column
+upstream_dams <- WAAIM_tidy_dams %>% 
+  select(OBJECTID, Number_of_dams_upstream)
+
+view(upstream_dams)
+
+#change both columns to numeric
+
+numb <- c(1,2)  
+
+upstream_dams[ , numb] <- apply(upstream_dams[ , numb], 2,            # Specify own function within apply
+                    function(x) as.numeric(as.character(x)))
+
+sapply(upstream_dams, class)
+
+#merge the dfs, must be the same class to merge
+WAAIM_tidy_dams_merge = WAAIM_tidy_numeric %>% left_join(upstream_dams,by="OBJECTID")
+WAAIM_tidy_dams_merge
+
+head(WAAIM_tidy_dams_merge)
+
+# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. The dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
+WAAIMcorr <- cor(WAAIM_tidy_dams_merge)
+
+# plot correlation matrix.
+corrplot(WAAIMcorr)
+
+# customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
+corrplot(WAAIMcorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#That plot is heinous. Too many variables. Checking correlation between variables that are categorized together in the AIM metadata.
+
+#selecting water quality columns and number of dams and run correlation
+water_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(23:30, 46))
+
+water_corr <- cor(water_quality)
+corrplot(water_corr)
+corrplot(water_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#selecting Biodiversity and Riparian Habitat Quality columns and number of dams and run correlation
+#left out non-native woody veg b/c 0 for all sites
+riparian_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(11:14, 16:22, 46))
+
+rip_corr <- cor(riparian_quality)
+corrplot(rip_corr)
+corrplot(rip_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+
+#selecting Watershed Function and Instream Habitat Quality and number of dams and run correlation
+instream_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(31:46))
+
+inst_corr <- cor(instream_quality)
+corrplot(inst_corr)
+corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+```
 
 # Rationale and Research Questions
 
