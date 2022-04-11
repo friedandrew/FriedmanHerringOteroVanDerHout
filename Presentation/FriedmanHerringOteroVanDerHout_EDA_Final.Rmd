@@ -208,7 +208,7 @@ WAAIM_tidy_dams <- left_join(WAAIM_tidy, result)
 
 write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
 
-dams_upstream <- st_read("./New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
+#dams_upstream <- st_read("./New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
 ```
 
 # Correlation Check on AIM Data
@@ -259,7 +259,7 @@ upstream_dams[ , numb] <- apply(upstream_dams[ , numb], 2,            # Specify 
 sapply(upstream_dams, class)
 
 #Make a plot to see how many upstream of the sites
-WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+WAAIM_tidy_dams <- st_read("../New Data/WAAIM_tidy_dams.csv")
 
 WAAIM_tidy_dams_viz <- WAAIM_tidy_dams %>% 
   select(SITE_CD, Number_of_dams_upstream) %>% 
