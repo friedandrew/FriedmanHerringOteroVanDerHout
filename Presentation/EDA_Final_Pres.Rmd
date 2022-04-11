@@ -2,8 +2,10 @@
 title: "Washington Dams and AIM Gage Sites"
 author: "Jackie Van Der Hout, Andrew Friedman-Herring, & Catherine Otero"
 date: "4/11/2022"
-output: ioslides_presentation
-editor_options: 
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+editor_options:
   chunk_output_type: console
 ---
 More info on slides in R here: https://bookdown.org/yihui/rmarkdown/ioslides-presentation.html
@@ -136,8 +138,6 @@ for(cur_site_name in site_name_vector){
   catchments <- rbind(catchments,cur_function_result)
 }
 
-flowlines <- flowline_outer_frame
-names(catchment_outer_frame)
 
 counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) #Filter for just WA Counties
