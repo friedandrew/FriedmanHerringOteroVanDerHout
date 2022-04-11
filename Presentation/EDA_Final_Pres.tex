@@ -1,0 +1,214 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  ignorenonframetext,
+]{beamer}
+\title{Washington Dams and AIM Gage Sites}
+\author{Jackie Van Der Hout, Andrew Friedman-Herring, \& Catherine
+Otero}
+\date{4/11/2022}
+
+\usepackage{pgfpages}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{caption label separator}{: }
+\setbeamercolor{caption name}{fg=normal text.fg}
+\beamertemplatenavigationsymbolsempty
+% Prevent slide breaks in the middle of a paragraph
+\widowpenalties 1 10000
+\raggedbottom
+\setbeamertemplate{part page}{
+  \centering
+  \begin{beamercolorbox}[sep=16pt,center]{part title}
+    \usebeamerfont{part title}\insertpart\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{section page}{
+  \centering
+  \begin{beamercolorbox}[sep=12pt,center]{part title}
+    \usebeamerfont{section title}\insertsection\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{subsection page}{
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center]{part title}
+    \usebeamerfont{subsection title}\insertsubsection\par
+  \end{beamercolorbox}
+}
+\AtBeginPart{
+  \frame{\partpage}
+}
+\AtBeginSection{
+  \ifbibliography
+  \else
+    \frame{\sectionpage}
+  \fi
+}
+\AtBeginSubsection{
+  \frame{\subsectionpage}
+}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Washington Dams and AIM Gage Sites},
+  pdfauthor={Jackie Van Der Hout, Andrew Friedman-Herring, \& Catherine Otero},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\newif\ifbibliography
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\frame{\titlepage}
+
+\begin{frame}
+More info on slides in R here:
+\url{https://bookdown.org/yihui/rmarkdown/ioslides-presentation.html}
+\end{frame}
+
+\begin{frame}{\textbf{Research Questions}}
+\protect\hypertarget{research-questions}{}
+\begin{itemize}
+\tightlist
+\item
+  How many dams are upstream of the gage sites?
+\item
+  How do the variables measured at each gage site correlate?
+\item
+  How do the number of dams correlate with the AIM variables?
+\end{itemize}
+
+\begin{block}{\emph{Why ask?}}
+\protect\hypertarget{why-ask}{}
+\begin{itemize}
+\tightlist
+\item
+  See the extent of the damming in Washington
+\item
+  See the impact of dams on AIM variables
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{\textbf{What data did we use?}}
+\protect\hypertarget{what-data-did-we-use}{}
+\begin{itemize}
+\tightlist
+\item
+  BLM Assessment, Inventory, and Monitoring (AIM) Data
+\item
+  Washington State Department of Ecology Inventory of Statewide Dams
+\item
+  National Hydrography Dataset of Flowlines and Catchments, developed by
+  the US EPA and USGS
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{Data Wrangling}}
+\protect\hypertarget{data-wrangling}{}
+\begin{itemize}
+\tightlist
+\item
+  Data scraping publicly available geospatial data for AIM and dam data
+\item
+  Using NHDplustools package to extract hydro data from the NHD
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{Analysis of the Data}}
+\protect\hypertarget{analysis-of-the-data}{}
+\begin{itemize}
+\tightlist
+\item
+  Analytical approaches
+\item
+  Correlations among and within variables
+\item
+  Geospatial tools to assess number of dams in catchments flowing into
+  sample sites
+\end{itemize}
+\end{frame}
+
+\begin{frame}{\textbf{Results of the Analysis}}
+\protect\hypertarget{results-of-the-analysis}{}
+\end{frame}
+
+\begin{frame}{Where are the AIM sample sites and their catchments?}
+\protect\hypertarget{where-are-the-aim-sample-sites-and-their-catchments}{}
+\end{frame}
+
+\begin{frame}{Where are all of dams in Washington State?}
+\protect\hypertarget{where-are-all-of-dams-in-washington-state}{}
+\end{frame}
+
+\begin{frame}{Catchments, Dams, and Sample Sites}
+\protect\hypertarget{catchments-dams-and-sample-sites}{}
+\end{frame}
+
+\begin{frame}{Water Quality Correlation Plot}
+\protect\hypertarget{water-quality-correlation-plot}{}
+\end{frame}
+
+\begin{frame}{Biodiversity and Riparian Habitat Quality Correlation
+Plot}
+\protect\hypertarget{biodiversity-and-riparian-habitat-quality-correlation-plot}{}
+\end{frame}
+
+\begin{frame}{Watershed Function and Instream Habitat Quality
+Correlation Plot}
+\protect\hypertarget{watershed-function-and-instream-habitat-quality-correlation-plot}{}
+\end{frame}
+
+\begin{frame}{\textbf{Next Steps}}
+\protect\hypertarget{next-steps}{}
+\begin{itemize}
+\tightlist
+\item
+  Running an AIC
+\item
+  Running regression
+\item
+  Calculating flowline distances with NHDtoolsplus
+\item
+  Comparing on AIM variables between sample site catchments on the basis
+  of \# of dams, dams / square mile, and flowline distance to dams
+\end{itemize}
+\end{frame}
+
+\end{document}
