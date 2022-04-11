@@ -259,10 +259,19 @@ upstream_dams[ , numb] <- apply(upstream_dams[ , numb], 2,            # Specify 
 sapply(upstream_dams, class)
 
 #Make a plot to see how many upstream of the sites
-upstream_dams_plot <- ggplot(data=upstream_dams, aes(x=OBJECTID, y=Number_of_dams_upstream)) +
-  geom_bar(stat="identity") + labs(x = "AIM Site", y = "Total Number of Dams Upstream")
-  
-upstream_dams_plot
+WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+
+WAAIM_tidy_dams_viz <- WAAIM_tidy_dams %>% 
+  select(SITE_CD, Number_of_dams_upstream) %>% 
+  arrange(Number_of_dams_upstream)
+
+WAAIM_tidy_dams_viz$SITE_CD <- as.factor(WAAIM_tidy_dams_viz$SITE_CD)
+
+ggplot(WAAIM_tidy_dams_viz, aes(x = SITE_CD, y = Number_of_dams_upstream))+
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(x = "Site ID", y = "Number of Dams Upstream", title = "Number of Dams Upstream of AIM Sample Sites")
+
 
 #merge the dfs, must be the same class to merge
 WAAIM_tidy_dams_merge = WAAIM_tidy_numeric %>% left_join(upstream_dams,by="OBJECTID")
