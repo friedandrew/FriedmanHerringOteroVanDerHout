@@ -2,8 +2,10 @@
 title: "Washington Dams and AIM Gage Sites"
 author: "Jackie Van Der Hout, Andrew Friedman-Herring, & Catherine Otero"
 date: "4/11/2022"
-output: ioslides_presentation
-editor_options: 
+output:
+  beamer_presentation: default
+  powerpoint_presentation: default
+editor_options:
   chunk_output_type: console
 ---
 More info on slides in R here: https://bookdown.org/yihui/rmarkdown/ioslides-presentation.html
@@ -136,8 +138,6 @@ for(cur_site_name in site_name_vector){
   catchments <- rbind(catchments,cur_function_result)
 }
 
-flowlines <- flowline_outer_frame
-names(catchment_outer_frame)
 
 counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) #Filter for just WA Counties
@@ -181,8 +181,8 @@ Monitoring (AIM) Data
 
 # **Results of the Analysis**
 
-## Where are the AIM sample sites and their catchments? 
-```{r}
+# Where are the AIM sample sites and their catchments? 
+```{r echo=FALSE}
 ggplot(counties_sf)+
   geom_sf()+
   geom_sf(data = catchments, color = "blue", alpha = 0.3)+
@@ -191,7 +191,7 @@ ggplot(counties_sf)+
 ```
 
 
-## Where are all of dams in Washington State? 
+# Where are all of dams in Washington State? 
 ```{r Dams in Washington State, echo=FALSE}
 ggplot(counties_sf_utm)+
   geom_sf()+
@@ -199,8 +199,8 @@ ggplot(counties_sf_utm)+
 
 ```
 
-## Catchments, Dams, and Sample Sites
-```{r}
+# Catchments, Dams, and Sample Sites
+```{r echo=FALSE}
 ggplot(counties_sf)+
   geom_sf()+
   geom_sf(data = catchments, color = "blue", alpha = 0.3)+
@@ -209,9 +209,9 @@ ggplot(counties_sf)+
 ```
 
 
-## Water Quality Correlation Plot
+# Water Quality Correlation Plot
 ```{r correlation plots, echo=FALSE}
-WAAIM_tidy_dams_merge <- read.csv("./New Data/WAAIM_tidy_dams_merge.csv")
+WAAIM_tidy_dams_merge <- read.csv("../New Data/WAAIM_tidy_dams_merge.csv")
 
 water_quality <- WAAIM_tidy_dams_merge %>% 
   select(c(23:30, 46))
@@ -220,8 +220,8 @@ water_corr <- cor(water_quality)
 corrplot(water_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
 
-## Biodiversity and Riparian Habitat Quality Correlation Plot
-```{r}
+# Biodiversity and Riparian Habitat Quality Correlation Plot
+```{r echo=FALSE}
 #selecting Biodiversity and Riparian Habitat Quality columns and number of dams and run correlation
 #left out non-native woody veg b/c 0 for all sites
 riparian_quality <- WAAIM_tidy_dams_merge %>% 
@@ -231,8 +231,8 @@ rip_corr <- cor(riparian_quality)
 corrplot(rip_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
 
-## Watershed Function and Instream Habitat Quality Correlation Plot
-```{r}
+# Watershed Function and Instream Habitat Quality Correlation Plot
+```{r echo=FALSE}
 
 #selecting Watershed Function and Instream Habitat Quality and number of dams and run correlation
 instream_quality <- WAAIM_tidy_dams_merge %>% 
