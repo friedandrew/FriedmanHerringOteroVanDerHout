@@ -276,6 +276,14 @@ WAAIM_tidy_dams <- left_join(WAAIM_tidy, result)
 write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
 
 dams_upstream <- st_read("./New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
+
+
+catchment_outer_frame <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ 
+  cur_function_result <- catchment_extract(cur_site_name)
+  head(cur_function_result)
+  catchment_outer_frame <- rbind(catchment_outer_frame,cur_function_result)
+}
 ```
 
 
