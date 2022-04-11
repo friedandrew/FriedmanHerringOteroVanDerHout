@@ -201,7 +201,7 @@ write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
 dams_upstream <- st_read("./New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
 ```
 
-# Corelation Check on AIM Data
+# Correlation Check on AIM Data
 ```{r correlation check}
 #Specify columns want to change to numeric
 #Change integer columns to numeric b/c corr can only be run on numeric columns
@@ -239,7 +239,7 @@ upstream_dams <- WAAIM_tidy_dams %>%
 
 view(upstream_dams)
 
-#change both columns to numeric
+#change both columns to numeric, go back and change
 
 numb <- c(1,2)  
 
@@ -247,6 +247,12 @@ upstream_dams[ , numb] <- apply(upstream_dams[ , numb], 2,            # Specify 
                     function(x) as.numeric(as.character(x)))
 
 sapply(upstream_dams, class)
+
+#Make a plot to see how many upstream of the sites
+upstream_dams_plot <- ggplot(data=upstream_dams, aes(x=OBJECTID, y=Number_of_dams_upstream)) +
+  geom_bar(stat="identity") + labs(x = "AIM Site", y = "Total Number of Dams Upstream")
+  
+upstream_dams_plot
 
 #merge the dfs, must be the same class to merge
 WAAIM_tidy_dams_merge = WAAIM_tidy_numeric %>% left_join(upstream_dams,by="OBJECTID")
