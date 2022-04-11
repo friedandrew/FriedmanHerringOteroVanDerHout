@@ -3,8 +3,13 @@ title: "Washington Dams and AIM Gage Sites"
 author: "Jackie Van Der Hout, Andrew Friedman-Herring, & Catherine Otero"
 date: "4/11/2022"
 output:
+<<<<<<< HEAD
   beamer_presentation: default
   powerpoint_presentation: default
+=======
+  slidy_presentation: default
+  ioslides_presentation: default
+>>>>>>> b85b984722bf5a4c84c6807c40be36081a625177
 editor_options:
   chunk_output_type: console
 ---
@@ -195,7 +200,9 @@ ggplot(counties_sf)+
 ```{r Dams in Washington State, echo=FALSE}
 ggplot(counties_sf_utm)+
   geom_sf()+
-  geom_sf(data = dam_complete_raw_utm, color = "dark red", alpha = 0.5)
+  geom_sf(data = dam_complete_raw_utm, color = "dark red")
+
+
 
 ```
 
