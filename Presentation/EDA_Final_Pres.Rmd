@@ -3,6 +3,8 @@ title: "Washington Dams and AIM Gage Sites"
 author: "Jackie Van Der Hout, Andrew Friedman-Herring, & Catherine Otero"
 date: "4/11/2022"
 output: ioslides_presentation
+editor_options: 
+  chunk_output_type: console
 ---
 More info on slides in R here: https://bookdown.org/yihui/rmarkdown/ioslides-presentation.html
 
@@ -13,6 +15,11 @@ library(lubridate)
 library(sf)
 library(corrplot)
 library(dplyr)
+library(nhdplusTools)
+library(tmap)
+tmap_mode("view") #makes map plots interactive
+library(dataRetrieval)
+library(maps)
 theme_set(theme_light())
 ```
 
@@ -162,21 +169,38 @@ Monitoring (AIM) Data
 ## Where are the AIM sample sites and their catchments? 
 ```{r}
 tmap_mode("view")
-tm_shape(outer_frame) + tm_lines() +
+tm_shape(catchment_outer_frame) + tm_lines() +
   tm_shape(WAAIM_tidy) + tm_dots() 
-  #tm_shape(dam_complete_raw)+ tm_dots(col="red")
+  #+ tm_shape(dam_complete_raw)+ tm_dots(col="red")
 
 ```
 
 
 ## Where are the dams in Washington State? 
-```{r}
+```{r include=FALSE}
+counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
+  filter(STATEFP == 53) #Filter for just WA Counties
 
+counties_sf_utm <- st_transform(counties_sf, crs = 26910)
+dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
+WAAIM_tidy_utm <- st_transform(WAAIM_tidy, crs = 26910)
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
+
+```
+```{r}
+ggplot(counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = dam_complete_raw_utm, color = "dark red", alpha = 0.5)
 ```
 
 ## Catchments, Dams, and Sample Sites
 ```{r}
-
+Dam_complete_catchment <-  Dam_catchment_intersect(catchment_outer_frame,dam_complete_raw)
 ```
 
 
