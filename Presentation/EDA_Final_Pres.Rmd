@@ -2,35 +2,212 @@
 title: "Washington Dams and AIM Gage Sites"
 author: "Jackie Van Der Hout, Andrew Friedman-Herring, & Catherine Otero"
 date: "4/11/2022"
-output: ioslides_presentation
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+editor_options:
+  chunk_output_type: console
 ---
+More info on slides in R here: https://bookdown.org/yihui/rmarkdown/ioslides-presentation.html
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(include = FALSE)
 library(tidyverse)
 library(lubridate)
 library(sf)
 library(corrplot)
 library(dplyr)
+library(nhdplusTools)
+library(tmap)
+tmap_mode("view") #makes map plots interactive
+library(dataRetrieval)
+library(maps)
 theme_set(theme_light())
 ```
 
-## Research Questions
+```{r data scraping, include=FALSE}
+#uploading datasets 
+AIMraw <- st_read("https://gis.blm.gov/arcgis/rest/services/hydrography/BLM_Natl_AIM_AquADat/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson&__ncforminfo=VmJvrSyZd1Eo2ftYuiZ2Csv3FXy8H7XoE-xtqGWFdpLoXXM_QrLBbJY-BtmB02LSjkYezZWjgMjkUQTDa0n0d7ugIiEzsdKzv1tB192rp3qdK8SWS-T_Vwxqlc6whlbENi3rrg4YqK40tpTjt0dJVWg3xwroBXxhGKT92BiR7Culk8jsk8g8cxPipo1GHHZ4oF9OZUqX8NX8gOXR3zsQRZxWmOIrkcEnN_JahqrcNjjDJXXh9ysVhdPK7UcQiEvMZy-n3fIQzqq-3YFqLGCq4ffzvu0ww4Pie6NuZD2CDkf9rilS-omAyiQq1LFJ0wVAl6PywwAseMQ4f6cDJXwLDn3BcTI3WP22jrsBYXm8SzrUZs5SGhJtMOOHN1-UMdNDFrO9rqMUXOQCTyKsmhFUFerLorYSAmMVohzr7cD03LvvdSkAQXKQpHQIcFuRqac69tN3eVlyV2IfsAA8yEcpU1GJKJx4jhwaVdXX9Sv4P1ACPp9mj3yqQ5zJqgAg0aFS6Z2O4GEd2B970yfKnbeicnbkgJTSCx0BQy3gtgkxCKujAYcWeMkvV5-dYcNF7lYQRaYvX8Eod5GUIbo8N8VNPF_USB9ZCQnlesBXLVMHXSOwH_bSq49wabgeZ2ZT7aZbJ1X8M_lXzzFieFrPzSKoOK_8_Bqcfde-Hdo8Jupndsn17KsTbpSH51tbBXOC6-3NJ0oBQuZAPkZ1I3pzzqb8sTFxIpYo2ia5lSHrZ5H-gxd753QRaQJBk1xWTyWgy8mON5hZYexZrjjUH4_C_SbY0Q%3D%3D")
+
+WAAIM <- AIMraw %>% 
+  filter(PRJCT == "WA_SpokaneDO")
+
+WAAIM_tidy <- WAAIM %>% 
+  select(OBJECTID, SITE_CD, "StreamName" = STRM_NM, MIDLAT, MIDLONG, "StreamOrder" = STRM_ORDR, BTMLAT, BTMLONG, TRLAT, TRLONG, "ReachLength" = TOT_RCH_LEN, "PercentCover" = PCT_OVRHD_CVR, VEG_CMPLXTY, RPRN_VEG_CNPY_CVR, RPRN_VEG_UNDRSTRY_CVR, RPRN_VEG_GC, NON_NTVE_WDY, NTVE_WDY, NON_NTVE_HRB, NTVE_HRB, SDGE_RSH, OBSRVD_INVRT_RCHNSS, EXPCTD_INVRT_RCHNSS, MACROINVRTBRTE_CNT, "TotalN" = TTL_N, "PredictedN" = PRD_TTL_N, "TotalP" = TTL_P, "PredictedP" = PRD_TTL_P, "SpC" = SPCFC_CNDCTNCE, "PredictedSpC" = PRD_SPCFC_CNDCTNCE, pH, INSTNT_TEMP, "PercentPools" = PCT_PL, "AvgPoolDepth" = RES_PL_DEP, "NumberPools" = NM_PL, LWD_FREQ, "LWDVolume" = LWD_VL, "PercentFines2" = PCT_FN2, "PercentFines6" = PCT_FN6, D16, D84, D50, BNK_STBLTY, BNK_CVR_LWD, BNKFLL_HT, INCSN_HT, CHN_INCSN, THLWG_DEP_MN, PCT_DRY, BNKFLL_WT, WTTD_WT, "FloodWidth" = FLD_WT, "EntrenchmentRatio" = ENTRCH, SLPE, SNSTY, BVR_SGN, geometry)
+
+rm(AIMraw)
+rm(WAAIM)
+
+#Import Dam Data
+dam_raw_0 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_0 <-  mutate(dam_raw_0, "Fish.Passage.Catagory" = rep("Not_a_barrier"))
+
+dam_raw_1 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/1/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_1 <- mutate(dam_raw_1, "Fish.Passage.Catagory" = rep("Partial_Fish_Passage_Blockage"))
+
+dam_raw_2 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/2/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_2 <- mutate(dam_raw_2, "Fish.Passage.Catagory" = rep("Total_Fish_Passage_Blockage"))
+
+dam_raw_3 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/3/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_3 <- mutate(dam_raw_3, "Fish.Passage.Catagory" = rep("Barrier_Unknown_Percent_Passable"))
+
+dam_raw_4 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/4/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_4 <- mutate(dam_raw_4, "Fish.Passage.Catagory" = rep("Diversion"))
+
+dam_raw_5 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/5/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_5 <- mutate(dam_raw_5, "Fish.Passage.Catagory" = rep("Natural_Barrier_Verified"))
+
+dam_raw_6 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/6/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_6 <- mutate(dam_raw_6, "Fish.Passage.Catagory" = rep("Natural_Barrier_Not_Field_Verified"))
+
+dam_raw_7 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/7/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_7 <- mutate(dam_raw_7, "Fish.Passage.Catagory" = rep("On_A_Non_Fish_Bearing_Stream"))
+
+dam_raw_8 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/8/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
+dam_raw_8 <- mutate(dam_raw_8, "Fish.Passage.Catagory" = rep("Unknown"))
+
+dam_complete_raw <- rbind(dam_raw_0, dam_raw_1, dam_raw_2,
+                          dam_raw_3, dam_raw_4, dam_raw_5,
+                          dam_raw_6, dam_raw_7, dam_raw_8)
+
+rm(dam_raw_0, dam_raw_1, dam_raw_2,
+    dam_raw_3, dam_raw_4, dam_raw_5,
+                          dam_raw_6, dam_raw_7, dam_raw_8)
+
+#extracting flowlines and catchments
+
+flowline_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  flowline <- subset$NHDFlowline_Network
+  #catchment <- subset$CatchmentSP
+  #waterbody <- subset$NHDWaterbody
+  #waterlist <- list(flowline, catchment, waterbody)
+  #names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(flowline)
+}
+
+catchment_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  #flowline <- subset$NHDFlowline_Network
+  catchment <- subset$CatchmentSP
+  #waterbody <- subset$NHDWaterbody
+  #waterlist <- list(flowline, catchment, waterbody)
+  #names(waterlist) = c("flowline", "catchment", "waterbody")
+  return(catchment)
+}
+
+site_name_vector <- WAAIM_tidy %>% pull(SITE_CD)
+
+flowlines <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ 
+  cur_function_result <- flowline_extract(cur_site_name)
+  head(cur_function_result)
+  flowlines <- rbind(flowlines,cur_function_result)
+}
+
+catchments <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ 
+  cur_function_result <- catchment_extract(cur_site_name)
+  head(cur_function_result)
+  catchments <- rbind(catchments,cur_function_result)
+}
+
+
+counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
+  filter(STATEFP == 53) #Filter for just WA Counties
+counties_sf_utm <- st_transform(counties_sf, crs = 26910)
+dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
+WAAIM_tidy_utm <- st_transform(WAAIM_tidy, crs = 26910)
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
+Dam_complete_catchment <-  Dam_catchment_intersect(catchments,dam_complete_raw)
+```
+
+# **Research Questions**
 
 - How many dams are upstream of the gage sites?
 - How do the variables measured at each gage site correlate?
 - How do the number of dams correlate with the AIM variables?
 
-## Why ask?
+## *Why ask?*
 
 - See the extent of the damming in Washington
 - See the impact of dams on AIM variables
 
-## What data did we use?
+# **What data did we use?**
 - BLM Assessment, Inventory, and
 Monitoring (AIM) Data
--
--
+- Washington State Department of Ecology Inventory of Statewide Dams
+- National Hydrography Dataset of Flowlines and Catchments, developed by the US EPA and USGS
+
+# **Data Wrangling**
+- Data scraping publicly available geospatial data for AIM and dam data
+- Using NHDplustools package to extract hydro data from the NHD
+
+# **Analysis of the Data**
+- Analytical approaches 
+- Correlations among and within variables
+- Geospatial tools to assess number of dams in catchments flowing into sample sites 
+
+# **Results of the Analysis**
+
+## Where are the AIM sample sites and their catchments? 
+```{r}
+ggplot(counties_sf)+
+  geom_sf()+
+  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = WAAIM_tidy, color = "green")
+
+```
+
+
+## Where are all of dams in Washington State? 
+```{r Dams in Washington State, echo=FALSE}
+ggplot(counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = dam_complete_raw_utm, color = "dark red", alpha = 0.5)
+
+```
+
+## Catchments, Dams, and Sample Sites
+```{r}
+ggplot(counties_sf)+
+  geom_sf()+
+  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = Dam_complete_catchment, color = "red", size = 0.5)+
+  geom_sf(data = WAAIM_tidy, color = "green")
+```
+
 
 ## Water Quality Correlation Plot
 ```{r correlation plots, echo=FALSE}
@@ -65,8 +242,8 @@ inst_corr <- cor(instream_quality)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
 
-
-## Next Steps
+# **Next Steps**
 - Running an AIC
 - Running regression
-
+- Calculating flowline distances with NHDtoolsplus
+- Comparing on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams

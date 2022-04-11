@@ -16,6 +16,7 @@ library(tidyverse)
 library(lubridate)
 library(sf)
 theme_set(theme_classic())
+
 ```
 
 https://hub.arcgis.com/maps/wdfw::wdfw-fish-passage-and-diversion-screening-inventory-sites/explore?location=47.280650%2C-120.845300%2C7.65 
@@ -68,7 +69,8 @@ rm(dam_raw_0, dam_raw_1, dam_raw_2,
 ggplot(dam_complete_raw)+
   geom_sf(data = dam_complete_raw, aes(color = Fish.Passage.Catagory))
 
-
+dam_complete_raw <- st_as_sf(dam_complete_raw)
+class(dam_complete_raw)
 ```
 
 ## Read in AIM
@@ -274,6 +276,14 @@ WAAIM_tidy_dams <- left_join(WAAIM_tidy, result)
 write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
 
 dams_upstream <- st_read("./New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
+
+
+catchment_outer_frame <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ 
+  cur_function_result <- catchment_extract(cur_site_name)
+  head(cur_function_result)
+  catchment_outer_frame <- rbind(catchment_outer_frame,cur_function_result)
+}
 ```
 
 
