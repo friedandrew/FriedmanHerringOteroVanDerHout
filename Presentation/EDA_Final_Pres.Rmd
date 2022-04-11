@@ -122,20 +122,35 @@ catchment_extract <- function(site_id){
 
 site_name_vector <- WAAIM_tidy %>% pull(SITE_CD)
 
-flowline_outer_frame <- data.frame(NULL)
+flowlines <- data.frame(NULL)
 for(cur_site_name in site_name_vector){ 
   cur_function_result <- flowline_extract(cur_site_name)
   head(cur_function_result)
-  flowline_outer_frame <- rbind(flowline_outer_frame,cur_function_result)
+  flowlines <- rbind(flowlines,cur_function_result)
 }
 
-catchment_outer_frame <- data.frame(NULL)
+catchments <- data.frame(NULL)
 for(cur_site_name in site_name_vector){ 
-  cur_function_result <- flowline_extract(cur_site_name)
+  cur_function_result <- catchment_extract(cur_site_name)
   head(cur_function_result)
-  catchment_outer_frame <- rbind(catchment_outer_frame,cur_function_result)
+  catchments <- rbind(catchments,cur_function_result)
 }
 
+flowlines <- flowline_outer_frame
+names(catchment_outer_frame)
+
+counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
+  filter(STATEFP == 53) #Filter for just WA Counties
+counties_sf_utm <- st_transform(counties_sf, crs = 26910)
+dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
+WAAIM_tidy_utm <- st_transform(WAAIM_tidy, crs = 26910)
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
+Dam_complete_catchment <-  Dam_catchment_intersect(catchments,dam_complete_raw)
 ```
 
 # **Research Questions**
@@ -168,39 +183,29 @@ Monitoring (AIM) Data
 
 ## Where are the AIM sample sites and their catchments? 
 ```{r}
-tmap_mode("view")
-tm_shape(catchment_outer_frame) + tm_lines() +
-  tm_shape(WAAIM_tidy) + tm_dots() 
-  #+ tm_shape(dam_complete_raw)+ tm_dots(col="red")
+ggplot(counties_sf)+
+  geom_sf()+
+  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = WAAIM_tidy, color = "green")
 
 ```
 
 
-## Where are the dams in Washington State? 
-```{r include=FALSE}
-counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
-  filter(STATEFP == 53) #Filter for just WA Counties
-
-counties_sf_utm <- st_transform(counties_sf, crs = 26910)
-dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
-WAAIM_tidy_utm <- st_transform(WAAIM_tidy, crs = 26910)
-Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
-  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
-  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
-  DAM_SUBSET <- DAM_DATA_UTM[lengths(st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
-  return(DAM_SUBSET)
-}
-
-```
-```{r}
+## Where are all of dams in Washington State? 
+```{r Dams in Washington State, echo=FALSE}
 ggplot(counties_sf_utm)+
   geom_sf()+
   geom_sf(data = dam_complete_raw_utm, color = "dark red", alpha = 0.5)
+
 ```
 
 ## Catchments, Dams, and Sample Sites
 ```{r}
-Dam_complete_catchment <-  Dam_catchment_intersect(catchment_outer_frame,dam_complete_raw)
+ggplot(counties_sf)+
+  geom_sf()+
+  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = Dam_complete_catchment, color = "red", size = 0.5)+
+  geom_sf(data = WAAIM_tidy, color = "green")
 ```
 
 
@@ -237,9 +242,8 @@ inst_corr <- cor(instream_quality)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
 
-#
-
-# Next Steps
+# **Next Steps**
 - Running an AIC
 - Running regression
-
+- Calculating flowline distances with NHDtoolsplus
+- Comparing on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
