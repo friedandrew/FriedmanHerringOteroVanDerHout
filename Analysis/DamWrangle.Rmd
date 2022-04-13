@@ -212,6 +212,15 @@ Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
   return(DAM_SUBSET)
 }
 
+Dam_flowline_intersect <- function(FLOWLINE, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  FLOWLINE_UTM <- st_transform(FLOWLINE, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(st_intersects(DAM_DATA_UTM, st_buffer(FLOWLINE_UTM, 10)) > 0,]
+  return(DAM_SUBSET)
+}
+
+#https://stackoverflow.com/questions/57116416/snap-points-to-line-in-order-in-r
+
 Site_5 <- catchment_extract(WAAIM_tidy$SITE_CD[5])
 Site_5_Dams <- Dam_catchment_intersect(Site_5, dam_complete_raw)
 ggplot(Site_5)+
