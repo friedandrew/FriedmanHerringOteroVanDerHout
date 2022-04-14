@@ -13,6 +13,17 @@ mainfont: Times New Roman
 
 ---
 
+### notes of things to update: 
+*replace data scraping below with spatial versions of AIM, dam, flow, and catchment data
+*add figure captions with fig.cap 
+*insert images of the data sources under data section
+*add metadata links to data section
+*break up analysis into seperate pages as makes sense
+*add writing describing each of the sections
+*fill out lessons learned and further research interests in conclusion 
+*Write 1-2 paragraph(s) detailing the rationale for your study. This should include both the context of the topic as well as a rationale for your choice of dataset (reason for location, variables, etc.). You may choose to include citations if you like (optional).
+
+
 \newpage
 \tableofcontents 
 \newpage
@@ -20,17 +31,6 @@ mainfont: Times New Roman
 \newpage
 \listoffigures 
 \newpage
-
-# Analysis
-
-
-
-## Question 1: How many dams are upstream of each sample site?
-
-## Question 2: How do the AIM variables correlate with each other?
-
-## Question 3: How does the number of dams correlate with the AIM variables?
-
 
 ```{r setup, include=FALSE}
 # Check working directory
@@ -52,7 +52,8 @@ theme_set(theme_light())
 ```
 
 
-```{r}
+
+```{r AIM & Dam data scraping}
 # Import AIM Data
 AIMraw <- st_read("https://gis.blm.gov/arcgis/rest/services/hydrography/BLM_Natl_AIM_AquADat/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson&__ncforminfo=VmJvrSyZd1Eo2ftYuiZ2Csv3FXy8H7XoE-xtqGWFdpLoXXM_QrLBbJY-BtmB02LSjkYezZWjgMjkUQTDa0n0d7ugIiEzsdKzv1tB192rp3qdK8SWS-T_Vwxqlc6whlbENi3rrg4YqK40tpTjt0dJVWg3xwroBXxhGKT92BiR7Culk8jsk8g8cxPipo1GHHZ4oF9OZUqX8NX8gOXR3zsQRZxWmOIrkcEnN_JahqrcNjjDJXXh9ysVhdPK7UcQiEvMZy-n3fIQzqq-3YFqLGCq4ffzvu0ww4Pie6NuZD2CDkf9rilS-omAyiQq1LFJ0wVAl6PywwAseMQ4f6cDJXwLDn3BcTI3WP22jrsBYXm8SzrUZs5SGhJtMOOHN1-UMdNDFrO9rqMUXOQCTyKsmhFUFerLorYSAmMVohzr7cD03LvvdSkAQXKQpHQIcFuRqac69tN3eVlyV2IfsAA8yEcpU1GJKJx4jhwaVdXX9Sv4P1ACPp9mj3yqQ5zJqgAg0aFS6Z2O4GEd2B970yfKnbeicnbkgJTSCx0BQy3gtgkxCKujAYcWeMkvV5-dYcNF7lYQRaYvX8Eod5GUIbo8N8VNPF_USB9ZCQnlesBXLVMHXSOwH_bSq49wabgeZ2ZT7aZbJ1X8M_lXzzFieFrPzSKoOK_8_Bqcfde-Hdo8Jupndsn17KsTbpSH51tbBXOC6-3NJ0oBQuZAPkZ1I3pzzqb8sTFxIpYo2ia5lSHrZ5H-gxd753QRaQJBk1xWTyWgy8mON5hZYexZrjjUH4_C_SbY0Q%3D%3D")
 
@@ -106,6 +107,137 @@ rm(dam_raw_0, dam_raw_1, dam_raw_2,
 
 
 ```
+
+# Rationale and Research Questions
+
+### Rationale: 
+
+## Question 1: How many dams are upstream of each sample site?
+
+## Question 2: How do the AIM variables correlate with each other?
+
+## Question 3: How do the number of dams upstream of sample sites correlate with the AIM variables?
+
+## *Why ask?*
+
+- See the extent of the damming in Washington
+- See the impact of dams on AIM variables
+- Understand preliminary correlations for further analysis 
+
+\newpage
+
+# Dataset Information
+
+Provide information on how the dataset for this analysis were collected, the data contained in the dataset, and any important pieces of information that are relevant to your analyses. This section should contain much of same information as the metadata file for the dataset but formatted in a way that is more narrative.
+
+Describe how you wrangled your dataset in a format similar to a methods section of a journal article.
+
+Add a table that summarizes your data structure (variables, units, ranges and/or central tendencies, data source if multiple are used, etc.). This table can be made in markdown text or inserted as a `kable` function in an R chunk. If the latter, do not include the code used to generate your table.
+
+## **What data did we use?**
+- BLM Assessment, Inventory, and
+Monitoring (AIM) Data
+- Washington State Department of Ecology Inventory of Statewide Dams
+- National Hydrography Dataset of Flowlines and Catchments, developed by the US EPA and USGS
+
+\newpage
+
+# **Data Wrangling**
+- Data scraping publicly available geospatial data for AIM and dam data
+- Using NHDplustools package to extract hydro data from the NHD
+
+\newpage
+
+# **Exploratory Data Analysis**
+
+Insert exploratory visualizations of your dataset. This may include, but is not limited to, graphs illustrating the distributions of variables of interest and/or maps of the spatial context of your dataset. Format your R chunks so that graphs are displayed but code is not displayed. Accompany these graphs with text sections that describe the visualizations and provide context for further analyses.
+
+Each figure should be accompanied by a caption, and each figure should be referenced within the text. 
+
+Scope: think about what information someone might want to know about the dataset before analyzing it statistically. How might you visualize this information? 
+
+- Correlations among and within variables
+- Geospatial tools to assess number of dams in catchments flowing into sample sites 
+
+\newpage
+
+# **Analysis**
+
+Insert visualizations and text describing your main analyses. Format your R chunks so that graphs are displayed but code and other output is not displayed. Instead, describe the results of any statistical tests in the main text (e.g., "Variable x was significantly different among y groups (ANOVA; df = 300, F = 5.55, p < 0.0001)"). Each paragraph, accompanied by one or more visualizations, should describe the major findings and how they relate to the question and hypotheses. Divide this section into subsections, one for each research question.
+
+Each figure should be accompanied by a caption, and each figure should be referenced within the text
+
+# Where are the AIM sample sites and their catchments? 
+```{r echo=FALSE}
+ggplot(counties_sf)+
+  geom_sf()+
+  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = WAAIM_tidy, color = "green")
+
+```
+
+
+# Where are all of dams in Washington State? 
+```{r Dams in Washington State, echo=FALSE}
+ggplot(counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = dam_complete_raw_utm, color = "dark red")
+
+
+
+```
+
+# Catchments, Dams, and Sample Sites
+```{r echo=FALSE}
+ggplot(counties_sf)+
+  geom_sf()+
+  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = Dam_complete_catchment, color = "red", size = 0.5)+
+  geom_sf(data = WAAIM_tidy, color = "green")
+```
+
+
+# Water Quality Correlation Plot
+```{r correlation plots, echo=FALSE}
+WAAIM_tidy_dams_merge <- read.csv("../New Data/WAAIM_tidy_dams_merge.csv")
+
+water_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(23:30, 46))
+
+water_corr <- cor(water_quality)
+corrplot(water_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+```
+
+# Biodiversity and Riparian Habitat Quality Correlation Plot
+```{r echo=FALSE}
+#selecting Biodiversity and Riparian Habitat Quality columns and number of dams and run correlation
+#left out non-native woody veg b/c 0 for all sites
+riparian_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(11:14, 16:22, 46))
+
+rip_corr <- cor(riparian_quality)
+corrplot(rip_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+```
+
+# Watershed Function and Instream Habitat Quality Correlation Plot
+```{r echo=FALSE}
+
+#selecting Watershed Function and Instream Habitat Quality and number of dams and run correlation
+instream_quality <- WAAIM_tidy_dams_merge %>% 
+  select(c(31:46))
+
+inst_corr <- cor(instream_quality)
+corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
+```
+
+# **Next Steps**
+- Running an AIC
+- Running regression
+- Calculating flowline distances with NHDtoolsplus
+- Comparing on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
+
+
+
 
 # Data Exploration of AIM Data
 ```{r data exploration}
@@ -316,30 +448,16 @@ corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
 
-# Rationale and Research Questions
-
-\newpage
-
-# Dataset Information
-
-
-
-\newpage
-
-# Exploratory Analysis 
-```{r}
-
-```
-
-
-
-\newpage
-
-
-\newpage
 
 # Summary and Conclusions
 
+Summarize your major findings from your analyses in a few paragraphs. What conclusions do you draw from your findings? Relate your findings back to the original research questions and rationale.
+
+**Next Steps**
+- Running an AIC
+- Running regression
+- Calculating flowline distances with NHDtoolsplus
+- Comparing on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
 
 \newpage
 
