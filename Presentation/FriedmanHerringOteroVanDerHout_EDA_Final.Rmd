@@ -344,6 +344,8 @@ write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
 ```
 
 # Correlation Check on AIM Data
+
+We run the correlation check to see what variables in the AIM data set are correlated with each other and also which variables are correlated with the number of dams upstream from the AIM gage site. Correlation plots can be used as a visualization to help choose what variables to include in regression models.
 ```{r correlation check}
 #Specify columns want to change to numeric
 #Change integer columns to numeric b/c corr can only be run on numeric columns
@@ -381,7 +383,7 @@ upstream_dams <- WAAIM_tidy_dams %>%
 
 view(upstream_dams)
 
-#change both columns to numeric, go back and change
+#change both columns to numeric
 
 numb <- c(1,2)  
 
@@ -390,28 +392,13 @@ upstream_dams[ , numb] <- apply(upstream_dams[ , numb], 2,            # Specify 
 
 sapply(upstream_dams, class)
 
-#Make a plot to see how many upstream of the sites
-WAAIM_tidy_dams <- st_read("../New Data/WAAIM_tidy_dams.csv")
-
-WAAIM_tidy_dams_viz <- WAAIM_tidy_dams %>% 
-  select(SITE_CD, Number_of_dams_upstream) %>% 
-  arrange(Number_of_dams_upstream)
-
-WAAIM_tidy_dams_viz$SITE_CD <- as.factor(WAAIM_tidy_dams_viz$SITE_CD)
-
-ggplot(WAAIM_tidy_dams_viz, aes(x = SITE_CD, y = Number_of_dams_upstream))+
-  geom_col()+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(x = "Site ID", y = "Number of Dams Upstream", title = "Number of Dams Upstream of AIM Sample Sites")
-
-
 #merge the dfs, must be the same class to merge
 WAAIM_tidy_dams_merge = WAAIM_tidy_numeric %>% left_join(upstream_dams,by="OBJECTID")
 WAAIM_tidy_dams_merge
 
 head(WAAIM_tidy_dams_merge)
 
-# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation btw each other is calculated. The dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
+# create a correlation matrix. Necessitates only complete cases. Needs to be its own data matrix. Use corr to create the matrix so all variables are the columns and rows and their correlation between each other is calculated. The dark blue diagonal down the middle is b/c when something correlated against itself is 1. Used to see how covariates are related aka correlated
 WAAIMcorr <- cor(WAAIM_tidy_dams_merge)
 
 # plot correlation matrix.
@@ -420,7 +407,7 @@ corrplot(WAAIMcorr)
 # customize so that only the upper half shows since the upper and lower (compared to the diagonal mirrors itself) with the type, diag = FALSE gets the self-correlation removed, endings change the text 
 corrplot(WAAIMcorr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 
-#That plot is heinous. Too many variables. Checking correlation between variables that are categorized together in the AIM metadata.
+#Checking correlation between variables that are categorized together in the AIM metadata.
 
 #selecting water quality columns and number of dams and run correlation
 water_quality <- WAAIM_tidy_dams_merge %>% 
@@ -447,17 +434,22 @@ inst_corr <- cor(instream_quality)
 corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
-
+# Results of Correlation Plots
+In the water quality plot, we saw number of dams upstream correlate positively with total nitrogen and pH. In the biodiversity and riparian habitat quality plot, we saw number of dams upstream correlate positively with non-native herbaceous vegetation. In the watershed function and in-stream habitat quality plot we saw number of dams upstream correlate negatively with percent pools in stream and average bank cover. 
 
 # Summary and Conclusions
 
+Washington's rivers are saturated with dams. Since the AIM sites are one-off sampling occurrences, the sites provide a wealth of information but not a clear way to examine or compare data. 
+
 Summarize your major findings from your analyses in a few paragraphs. What conclusions do you draw from your findings? Relate your findings back to the original research questions and rationale.
 
-**Next Steps**
-- Running an AIC
-- Running regression
-- Calculating flowline distances with NHDtoolsplus
-- Comparing on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
+# Next Steps
+The initial analyses we ran prepared us to further investigate the data. We plan to:
+- Run an AIC to choose the most influential variables
+- Run regression with the AIC determined variables
+- Run a regression that includes stream order, dam type, number of dams upstream, and distance to dam with selected AIM variable as the dependent variable
+- Calculate flowline distances with NHDtoolsplus
+- Compare on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
 
 \newpage
 
