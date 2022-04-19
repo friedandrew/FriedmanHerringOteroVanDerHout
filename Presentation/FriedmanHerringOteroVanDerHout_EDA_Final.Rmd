@@ -1,36 +1,19 @@
 ---
-output: 
+title: "Analyzing the relationships between variables monitored at AIM sites in WA and the number of dams upstream"
+author: "Catherine Otero, Jackie Van der Hout, Andrew Friedman-Herring"
+output:
+  html_document:
+    df_print: paged
   pdf_document:
     keep_tex: yes
     fig_caption: yes
     number_sections: yes
+subtitle: Web address for GitHub repository
 geometry: margin=2.54cm
-title: "Insert title of project here"
-subtitle: "Web address for GitHub repository"
-author: "Name"
 fontsize: 12pt
 mainfont: Times New Roman
-
 ---
 
-### notes of things to update: 
-*replace data scraping below with spatial versions of AIM, dam, flow, and catchment data (this means figuring out writing and reading in sf data vs csv...)
-*add figure captions with fig.cap 
-*insert images of the data sources under data section
-*add metadata links to data section
-*break up analysis into seperate pages as makes sense
-*add writing describing each of the sections
-*fill out lessons learned and further research interests in conclusion 
-
-
-
-\newpage
-\tableofcontents 
-\newpage
-\listoftables 
-\newpage
-\listoffigures 
-\newpage
 
 ```{r setup, include=FALSE}
 # Check working directory
@@ -95,12 +78,12 @@ Finally, we used the National Hydrography Dataset of Flowlines and Catchments de
 
 
 
-Add a table that summarizes your data structure (variables, units, ranges and/or central tendencies, data source if multiple are used, etc.). This table can be made in markdown text or inserted as a `kable` function in an R chunk. If the latter, do not include the code used to generate your table.
+
 \newpage
 
 
 #Data Scraping
-```{r AIM & Dam data scraping and saving as csv files, eval=FALSE, include=FALSE}
+```{r AIM & Dam data scraping and saving as csv files, include=FALSE}
 # Import AIM Data
 AIMraw <- st_read("https://gis.blm.gov/arcgis/rest/services/hydrography/BLM_Natl_AIM_AquADat/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=*&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson&__ncforminfo=VmJvrSyZd1Eo2ftYuiZ2Csv3FXy8H7XoE-xtqGWFdpLoXXM_QrLBbJY-BtmB02LSjkYezZWjgMjkUQTDa0n0d7ugIiEzsdKzv1tB192rp3qdK8SWS-T_Vwxqlc6whlbENi3rrg4YqK40tpTjt0dJVWg3xwroBXxhGKT92BiR7Culk8jsk8g8cxPipo1GHHZ4oF9OZUqX8NX8gOXR3zsQRZxWmOIrkcEnN_JahqrcNjjDJXXh9ysVhdPK7UcQiEvMZy-n3fIQzqq-3YFqLGCq4ffzvu0ww4Pie6NuZD2CDkf9rilS-omAyiQq1LFJ0wVAl6PywwAseMQ4f6cDJXwLDn3BcTI3WP22jrsBYXm8SzrUZs5SGhJtMOOHN1-UMdNDFrO9rqMUXOQCTyKsmhFUFerLorYSAmMVohzr7cD03LvvdSkAQXKQpHQIcFuRqac69tN3eVlyV2IfsAA8yEcpU1GJKJx4jhwaVdXX9Sv4P1ACPp9mj3yqQ5zJqgAg0aFS6Z2O4GEd2B970yfKnbeicnbkgJTSCx0BQy3gtgkxCKujAYcWeMkvV5-dYcNF7lYQRaYvX8Eod5GUIbo8N8VNPF_USB9ZCQnlesBXLVMHXSOwH_bSq49wabgeZ2ZT7aZbJ1X8M_lXzzFieFrPzSKoOK_8_Bqcfde-Hdo8Jupndsn17KsTbpSH51tbBXOC6-3NJ0oBQuZAPkZ1I3pzzqb8sTFxIpYo2ia5lSHrZ5H-gxd753QRaQJBk1xWTyWgy8mON5hZYexZrjjUH4_C_SbY0Q%3D%3D")
 
@@ -113,7 +96,7 @@ WAAIM_tidy <- WAAIM %>%
 rm(AIMraw)
 rm(WAAIM)
 
-write.csv(WAAIM_tidy, "../New Data/WAAIM_tidy.csv")
+#write.csv(WAAIM_tidy, "../New Data/WAAIM_tidy.csv")
 
 #Import Dam Data
 dam_raw_0 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
@@ -152,13 +135,20 @@ rm(dam_raw_0, dam_raw_1, dam_raw_2,
    dam_raw_3, dam_raw_4, dam_raw_5,
    dam_raw_6, dam_raw_7, dam_raw_8)
 
+counties_sf<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
+  filter(STATEFP == 53) #Filter for just WA Counties
+
+counties_sf_utm <- st_transform(counties_sf, crs = 26910)
+dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
+WAAIM_tidy_utm <- st_transform(WAAIM_tidy, crs = 26910)
+
 #st_write(dam_complete_raw, "./New Data/dam_complete_raw.shp") #this is to save time on our local computers to not have to data scrape every time
 
 #dam_read_in <- st_read("../New Data/dam_complete_raw.shp")
 
 ```
 #Creating Functions for extracting Catchment and flowlines from NHDSplus Tools
-```{r}
+```{r message=FALSE, warning=FALSE}
 flowline_extract <- function(site_id){
   selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
   MIDLAT <- selectingsites$MIDLAT
@@ -203,23 +193,23 @@ flowline_outer_frame <- data.frame(NULL)
 for(cur_site_name in site_name_vector){ #took out [1:3] after site_name_vector
   cur_function_result <- flowline_extract(cur_site_name)
   head(cur_function_result)
-  flowline_outer_frame <- rbind(outer_frame,cur_function_result)
+  flowline_outer_frame <- rbind(flowline_outer_frame,cur_function_result)
 }
 
-write.csv(outer_frame, "New Data/flowlinesall.csv")
-outer_frame %>% names() #inside of here is a thing called PATHLENGTH which is what we need to extract the distances! 
+#write.csv(outer_frame, "New Data/flowlinesall.csv")
+#outer_frame %>% names() #inside of here is a thing called PATHLENGTH which is what we need to extract the distances! 
 
 catchment_outer_frame <- data.frame(NULL)
 for(cur_site_name in site_name_vector){ #took out [1:3] after site_name_vector
   cur_function_result <- flowline_extract(cur_site_name)
   head(cur_function_result)
-  catchment_outer_frame <- rbind(outer_frame,cur_function_result)
+  catchment_outer_frame <- rbind(catchment_outer_frame,cur_function_result)
 }
-write.csv(outer_frame, "New Data/catchmentsall.csv")
+#write.csv(outer_frame, "New Data/catchmentsall.csv")
 
 ```
 #Intersecting Dam Data with flowline + catchment data above AIM sites
-```{r}
+```{r message=FALSE, warning=FALSE}
 Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
   DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
   CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
@@ -247,9 +237,12 @@ result <- result %>%
 
 WAAIM_tidy_dams <- left_join(WAAIM_tidy, result)
 
-write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
+#write.csv(WAAIM_tidy_dams, "../New Data/WAAIM_tidy_dams.csv")
 
-#dams_upstream <- st_read("./New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
+
+Dam_complete_catchment <- Dam_catchment_intersect(catchment_outer_frame, dam_complete_raw)
+
+#dams_upstream <- st_read("../New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
 ```
 
 
@@ -257,53 +250,49 @@ write.csv(WAAIM_tidy_dams, "./New Data/WAAIM_tidy_dams.csv")
 
 # **Exploratory Data Analysis**
 
-Insert exploratory visualizations of your dataset. This may include, but is not limited to, graphs illustrating the distributions of variables of interest and/or maps of the spatial context of your dataset. Format your R chunks so that graphs are displayed but code is not displayed. Accompany these graphs with text sections that describe the visualizations and provide context for further analyses.
-
-Each figure should be accompanied by a caption, and each figure should be referenced within the text. 
-
-Scope: think about what information someone might want to know about the dataset before analyzing it statistically. How might you visualize this information? 
-
-- Correlations among and within variables
-- Geospatial tools to assess number of dams in catchments flowing into sample sites 
-
+To explore our data, we made simple spatial ggplots of our data sets.
 
 # Where are the AIM sample sites and their catchments? 
 ```{r echo=FALSE}
 ggplot(counties_sf)+
   geom_sf()+
-  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = catchment_outer_frame, color = "blue", alpha = 0.3)+
   geom_sf(data = WAAIM_tidy, color = "green")
 
 ```
-
+This figure shows the result of extracting the flowlines and catchments of all of the basins above each AIM site using NHDplusTools
 
 # Where are all of dams in Washington State? 
 ```{r Dams in Washington State, echo=FALSE}
-ggplot(counties_sf_utm)+
+
+ggplot(counties_sf)+
   geom_sf()+
-  geom_sf(data = dam_complete_raw_utm, color = "dark red")
+  geom_sf(data = dam_complete_raw, color = "dark red")
 
 
 
 ```
+This figure is a simple plot of our Washington State Department of Ecology Inventory of Statewide Dams data.
 
 # Catchments, Dams, and Sample Sites
 ```{r echo=FALSE}
 ggplot(counties_sf)+
   geom_sf()+
-  geom_sf(data = catchments, color = "blue", alpha = 0.3)+
+  geom_sf(data = catchment_outer_frame, color = "blue", alpha = 0.3)+
   geom_sf(data = Dam_complete_catchment, color = "red", size = 0.5)+
   geom_sf(data = WAAIM_tidy, color = "green")
-```
 
+
+```
+This is the result of intersecting all three of our data sets to map every dam that is in a watershed above an AIM site. This data is then added to the AIM data and analyzed in the next section. 
 
 \newpage
 
 # **Analysis**
 
-Insert visualizations and text describing your main analyses. Format your R chunks so that graphs are displayed but code and other output is not displayed. Instead, describe the results of any statistical tests in the main text (e.g., "Variable x was significantly different among y groups (ANOVA; df = 300, F = 5.55, p < 0.0001)"). Each paragraph, accompanied by one or more visualizations, should describe the major findings and how they relate to the question and hypotheses. Divide this section into subsections, one for each research question.
+# Correlation Check on AIM Data
 
-Each figure should be accompanied by a caption, and each figure should be referenced within the text
+We ran a correlation check to see what variables in the AIM data set are correlated with each other and also which variables are correlated with the number of dams upstream from the AIM gage site. Correlation plots can be used as a visualization to help choose what variables to include in regression models.
 
 
 # Water Quality Correlation Plot
@@ -338,20 +327,29 @@ instream_quality <- WAAIM_tidy_dams_merge %>%
 inst_corr <- cor(instream_quality)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
+# Results of Correlation Plots
 
-# **Next Steps**
-- Running an AIC
-- Running regression
-- Calculating flowline distances with NHDtoolsplus
-- Comparing on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
+In the water quality plot, we saw number of dams upstream correlate positively with total nitrogen and pH. In the biodiversity and riparian habitat quality plot, we saw number of dams upstream correlate positively with non-native herbaceous vegetation. In the watershed function and in-stream habitat quality plot we saw number of dams upstream correlate negatively with percent pools in stream and average bank cover. 
+
+# Summary and Conclusions
+
+Washington's rivers are saturated with dams. The number of dams upstream of a sample site correlated with metrics that negatively influence water quality. However, because of the small sample size and since the AIM sites are one-off sampling occurrences, the sites provide a wealth of information but not a clear way to examine or compare data over time. Therefore it is difficult to say whether the poor water quality is caused by the dams, or if both are side-effects of highly human disturbed ecosystems. 
+
+
+
+# Next Steps
+The initial analyses we ran prepared us to further investigate the data. We plan to:
+- Run an AIC to choose the most influential variables
+- Run regression with the AIC determined variables
+- Run a regression that includes stream order, dam type, number of dams upstream, and distance to dam with selected AIM variable as the dependent variable
+- Calculate flowline distances with NHDtoolsplus
+- Compare on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
 
 
 
 
-# Correlation Check on AIM Data
 
-We run the correlation check to see what variables in the AIM data set are correlated with each other and also which variables are correlated with the number of dams upstream from the AIM gage site. Correlation plots can be used as a visualization to help choose what variables to include in regression models.
-```{r correlation check}
+```{r correlation check, eval=FALSE, include=FALSE}
 #Specify columns want to change to numeric
 #Change integer columns to numeric b/c corr can only be run on numeric columns
 
@@ -378,7 +376,7 @@ WAAIM_tidy_numeric <- st_set_geometry(WAAIM_tidy_numeric, NULL)
 head(WAAIM_tidy_numeric)
 
 #read in updated data with number of upstream dams attached. Warning is okay.
-WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+WAAIM_tidy_dams <- st_read("../New Data/WAAIM_tidy_dams.csv")
 
 head(WAAIM_tidy_dams)
 
@@ -439,24 +437,10 @@ inst_corr <- cor(instream_quality)
 corrplot(inst_corr)
 corrplot(inst_corr, type = "upper", diag = FALSE, tl.cex = 0.8, tl.col = "black")
 ```
-# Results of Correlation Plots
-In the water quality plot, we saw number of dams upstream correlate positively with total nitrogen and pH. In the biodiversity and riparian habitat quality plot, we saw number of dams upstream correlate positively with non-native herbaceous vegetation. In the watershed function and in-stream habitat quality plot we saw number of dams upstream correlate negatively with percent pools in stream and average bank cover. 
 
-# Summary and Conclusions
 
-Washington's rivers are saturated with dams. Since the AIM sites are one-off sampling occurrences, the sites provide a wealth of information but not a clear way to examine or compare data. 
 
-Summarize your major findings from your analyses in a few paragraphs. What conclusions do you draw from your findings? Relate your findings back to the original research questions and rationale.
 
-# Next Steps
-The initial analyses we ran prepared us to further investigate the data. We plan to:
-- Run an AIC to choose the most influential variables
-- Run regression with the AIC determined variables
-- Run a regression that includes stream order, dam type, number of dams upstream, and distance to dam with selected AIM variable as the dependent variable
-- Calculate flowline distances with NHDtoolsplus
-- Compare on AIM variables between sample site catchments on the basis of # of dams, dams / square mile, and flowline distance to dams
 
 \newpage
 
-# References
-<add references here if relevant, otherwise delete this section> 
