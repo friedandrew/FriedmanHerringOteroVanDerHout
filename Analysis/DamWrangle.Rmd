@@ -119,11 +119,13 @@ ggplot(data = WAAIM_tidy_utm)+
 
 dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm, county_intersect)) > 0,]
 
+
 ggplot(data = dam_intersect)+
   geom_sf(data = counties_sf_utm)+
   geom_sf()+
   geom_sf(data = WAAIM_tidy_utm, color = "red")
   
+
 
 ```
 

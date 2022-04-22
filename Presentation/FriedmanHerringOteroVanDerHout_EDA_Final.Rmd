@@ -96,7 +96,18 @@ WAAIM_tidy <- WAAIM %>%
 rm(AIMraw)
 rm(WAAIM)
 
-#write.csv(WAAIM_tidy, "../New Data/WAAIM_tidy.csv")
+WAAIM_tidy3 <- st_read("../New Data/WAAIM_tidy.csv", geometry_column = geometry)
+
+
+st_write(WAAIM_tidy, "../New Data/WAAIM_tidy2.shp")
+WAAIM_tidy2 <- st_read("../New Data/WAAIM_tidy2.shp")
+
+
+#do the same with dam data seems to work
+#however then the for loops with the flowline and catchment functions don't seem to work with these files? 
+#also take a look at the CSVs for the flowlines and the catchments 
+
+##write.csv(WAAIM_tidy, "../New Data/WAAIM_tidy.csv")
 
 #Import Dam Data
 dam_raw_0 <- st_read("https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/0/query?where=1%3D1&text=&objectIds=&time=&timeRelation=esriTimeRelationOverlaps&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&distance=&units=esriSRUnit_Foot&relationParam=&outFields=&returnGeometry=true&returnTrueCurves=false&maxAllowableOffset=&geometryPrecision=&outSR=&havingClause=&returnIdsOnly=false&returnCountOnly=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&returnZ=false&returnM=false&gdbVersion=&historicMoment=&returnDistinctValues=false&resultOffset=&resultRecordCount=&returnExtentOnly=false&sqlFormat=none&datumTransformation=&parameterValues=&rangeValues=&quantizationParameters=&featureEncoding=esriDefault&f=geojson")
