@@ -1,0 +1,74 @@
+---
+title: "DamVariableSimple"
+author: "Jackie Van Der Hout"
+date: "4/22/2022"
+output: html_document
+---
+
+```{r}
+library(sf)
+library(tidyverse)
+library(nhdplusTools)
+library(dplyr)
+library(readr)
+library(mapview)
+
+```
+
+Loading Scraped Data
+```{r}
+WAAIM_tidy <- st_read("./New Data/WAAIM_tidy.shp") %>% 
+  st_transform(crs = 26910)
+
+counties_sf_utm<- st_read('./New Data/cb_2018_us_county_20m.shp') %>% 
+  filter(STATEFP == 53) %>%  #Filter for just WA Counties
+  st_transform(crs = 26910)
+
+dam_complete_raw_utm <- st_read("./New Data/dam_complete_raw.shp") %>% 
+  st_transform(crs = 26910)
+
+flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>% 
+  st_transform(crs = 26910)
+
+catchments_utm <- st_read("./New Data/catchmentsall_true.shp") %>% 
+  st_transform(crs = 26910)
+
+dam_points_buf <- st_buffer(dam_complete_raw_utm, 15)
+dam_intersect <- st_intersection(catchments_utm, dam_points_buf)
+
+```
+
+Data Scraping Function to Edit
+I would like to use the site id’s determined in WAAIM_tidy (one for each of the 45 sample sites) and just add a column to the catchment output that indicates which site id watershed the sub-catchment was extracted from
+```{r}
+catchment_extract <- function(site_id){
+  selectingsites <- filter(WAAIM_tidy, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  catchment <- subset$CatchmentSP
+  return(catchment)
+}
+
+site_name_vector <- WAAIM_tidy %>% pull(SITE_CD)
+
+catchment_outer_frame <- data.frame(NULL)
+for(cur_site_name in site_name_vector){ 
+  cur_function_result <- catchment_extract(cur_site_name)
+  head(cur_function_result)
+  catchment_outer_frame <- rbind(catchment_outer_frame,cur_function_result)
+}
+
+#st_write(catchment_outer_frame, "../New Data/catchmentsall_true.shp")
+```
+
