@@ -27,20 +27,20 @@ library(tmap)
 
 Loading Scraped Data
 ```{r}
-WAAIM_tidy_utm <- st_read("../New Data/WAAIM_tidy.shp") %>% 
+WAAIM_tidy_utm <- st_read("./New Data/WAAIM_tidy.shp") %>% 
   st_transform(crs = 26910)
 
-counties_sf_utm<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
+counties_sf_utm<- st_read('./New Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) %>%  #Filter for just WA Counties
   st_transform(crs = 26910)
 
-dam_complete_raw_utm <- st_read("../New Data/dam_complete_raw.shp") %>% 
+dam_complete_raw_utm <- st_read("./New Data/dam_complete_raw.shp") %>% 
   st_transform(crs = 26910)
 
-flowlines_utm <- st_read("../New Data/flowlinesall.shp") %>% 
+flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>% 
   st_transform(crs = 26910)
 
-catchments_utm <- st_read("../New Data/catchmentsall.shp") %>% 
+catchments_utm <- st_read("./New Data/catchmentsall.shp") %>% 
   st_transform(crs = 26910)
 ```
 
@@ -48,6 +48,7 @@ catchments_utm <- st_read("../New Data/catchmentsall.shp") %>%
 Number of dams upstream of each sample site 
 ```{r}
 #selecting the counties that intersect with the catchments 
+
 county_intersect <- counties_sf_utm[lengths(st_intersects(counties_sf_utm, WAAIM_tidy_utm)) > 0,]
 dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm, county_intersect)) > 0,]
 ```
@@ -55,22 +56,48 @@ dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm
 
 Flowline distance extracting 
 *A - Snapping dam points to flowlines
+(this has not worked for me and is not worth spending much more time on IMO)
 ```{r}
+#taking the inside of the below function and trying to do it piece by piece 
 # buffer the points by the tolerance
 dam_points_buf <- st_buffer(dam_intersect, 15)
   
 # intersect the line with the buffer
 line_intersect <- st_intersection(flowlines_utm, dam_points_buf)
 
+#use ndhplus to find the nearest point on a line 
+
+mapview::mapview(line_intersect)
+
 # convert mutlinestrings (more than one road segment) into linestrings
-line_intersect <- do.call(rbind,lapply(1:nrow(line_intersect),function(x){st_cast(line_intersect[x,],"LINESTRING")}))
+#line_intersect <- do.call(rbind,lapply(1:nrow(line_intersect),function(x){st_cast(line_intersect[x,],"LINESTRING")}))
 
 # for each line intersection, calculate the nearest point on that line to our gps point
-nearest_pt <- do.call(rbind,lapply(seq_along(points$id), function(i)) 
+nearest_pt <- do.call(rbind,lapply(seq_along(points$id), ifunc))
   
-points[points$id==i,] %>%  st_nearest_points(line_intersect[line_intersect$id==i,]) %>% st_sf %>%
-  st_cast('POINT') %>% mutate(id = i)
+nearest_pt <- points[points$id==i,] %>%  
+  st_nearest_points(line_intersect[line_intersect$id==i,]) %>% 
+  st_sf %>%
+  st_cast('POINT') %>% 
+  mutate(id = i) 
+
+ifunc <- function(i){
+    points[points$id==i,] %>%  
+    st_nearest_points(line_intersect[line_intersect$id==i,]) %>% 
+    st_sf %>%
+    st_cast('POINT') %>% 
+    mutate(id = i)
+}
+
+points %>% View()
+
+nearest_pt <- do.call(rbind,lapply(seq_along(points$id), function(i){
+    points[points$id==i,] %>%  st_nearest_points(line_intersect[line_intersect$id==i,]) %>% st_sf %>%
+      st_cast('POINT') %>% mutate(id = i)
+    }))
+
   
+#__________________________________ 
 
 custom_snap <- function(flowlines_utm, dam_points_buf, tolerance) {
   # intersect the line with the buffer
@@ -133,7 +160,7 @@ custom_snap <- function(flowlines_utm, dam_points_buf, tolerance) {
   return(snapped_points)
 }
 
-gps_snap <- custom_snap(line, gps, 15) %>%
+flowlines_snap <- custom_snap(flowlines_utm, dam_intersect, 15) %>%
   cbind(st_coordinates(.))
 ```
 
