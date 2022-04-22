@@ -20,7 +20,7 @@ dam_complete_raw <- st_read("../New Data/dam_complete_raw.shp")
 
 flowlines <- st_read("../New Data/flowlinesall.shp")
 
-catchments <- st_read("../New Data/catchmentsall.shp")
+catchments <- st_read("../New Data/catchmentsall_true.shp")
 
 counties_sf_utm <- st_transform(counties_sf, crs = 26910)
 dam_complete_raw_utm <- st_transform(dam_complete_raw, crs = 26910)
@@ -152,13 +152,13 @@ st_write(flowline_outer_frame, "../New Data/flowlinesall.shp")
 
 catchment_outer_frame <- data.frame(NULL)
 for(cur_site_name in site_name_vector){ #took out [1:3] after site_name_vector
-  cur_function_result <- flowline_extract(cur_site_name)
+  cur_function_result <- catchment_extract(cur_site_name)
   head(cur_function_result)
   catchment_outer_frame <- rbind(catchment_outer_frame,cur_function_result)
 }
 
-st_write(catchment_outer_frame, "../New Data/catchmentsall.shp")
-
+st_write(catchment_outer_frame, "../New Data/catchmentsall_true.shp")
+mapview::mapview(catchment_outer_frame)
 ```
 
 

@@ -21,7 +21,7 @@ library(tidyverse)
 library(nhdplusTools)
 library(dplyr)
 library(readr)
-library(tmap)
+library(mapview)
 
 ```
 
@@ -40,8 +40,9 @@ dam_complete_raw_utm <- st_read("./New Data/dam_complete_raw.shp") %>%
 flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>% 
   st_transform(crs = 26910)
 
-catchments_utm <- st_read("./New Data/catchmentsall.shp") %>% 
+catchments_utm <- st_read("./New Data/catchmentsall_true.shp") %>% 
   st_transform(crs = 26910)
+
 ```
 
 
@@ -51,6 +52,21 @@ Number of dams upstream of each sample site
 
 county_intersect <- counties_sf_utm[lengths(st_intersects(counties_sf_utm, WAAIM_tidy_utm)) > 0,]
 dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm, county_intersect)) > 0,]
+
+dam_points_buf <- st_buffer(dam_complete_raw_utm, 15)
+dam_intersect <- st_intersection(catchments_utm, dam_points_buf)
+
+ggplot()+
+  geom_sf(dam_intersect)+
+  geom_sf(data = counties_sf_utm)+
+  geom_sf(data = catchments_utm)
+
+mapview::mapview(catchments_utm)+mapview(dam_intersect)
+
+#get the area of the catchment areas
+#join the dams together to the catchment areas 
+#divide the two columns 
+
 ```
 
 
@@ -58,6 +74,9 @@ Flowline distance extracting
 *A - Snapping dam points to flowlines
 (this has not worked for me and is not worth spending much more time on IMO)
 ```{r}
+
+#st_snap function might help 
+
 #taking the inside of the below function and trying to do it piece by piece 
 # buffer the points by the tolerance
 dam_points_buf <- st_buffer(dam_intersect, 15)
@@ -182,6 +201,11 @@ flowlines_snap <- custom_snap(flowlines_utm, dam_intersect, 15) %>%
 
 Number of dams per square mile per catchment 
 ```{r}
+dams_per_area <- dam_intersect %>% 
+  st_join(catchments_utm) %>%
+  count(id.x) %>% #counting by the catchment ID
+  st_drop_geometry()
+
 
 ```
 
