@@ -54,7 +54,7 @@ dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm
 
 
 Flowline distance extracting 
-*A - Snapping points to a line
+*A - Snapping dam points to flowlines
 ```{r}
 # buffer the points by the tolerance
 dam_points_buf <- st_buffer(dam_intersect, 15)
@@ -135,6 +135,21 @@ custom_snap <- function(flowlines_utm, dam_points_buf, tolerance) {
 
 gps_snap <- custom_snap(line, gps, 15) %>%
   cbind(st_coordinates(.))
+```
+
+* B - attaching AIM sites to flowlines (repeat above)
+```{r}
+
+```
+
+* C - subtracting distances on flowlines
+```{r}
+
+```
+
+* D - creating a new dataframe with including distances from each dam for every AIM sample site 
+```{r}
+
 ```
 
 
