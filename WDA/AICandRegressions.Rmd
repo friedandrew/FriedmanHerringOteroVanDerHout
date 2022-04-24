@@ -90,7 +90,7 @@ dam_data_clean <- dam_data_merge %>%
 colSums(is.na(dam_data_clean))
 
 #save cleaned data as a csv
-write.csv(dam_data_clean, "./New Data/dam_data_clean.csv", row.names=FALSE)
+#write.csv(dam_data_clean, "./New Data/dam_data_clean.csv", row.names=FALSE)
 
 #read in dam_data_clean to make sure it worked
 dam_analysis <- read.csv("./New Data/dam_data_clean.csv")
