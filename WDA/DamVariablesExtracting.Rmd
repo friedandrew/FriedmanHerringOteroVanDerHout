@@ -21,56 +21,102 @@ library(tidyverse)
 library(nhdplusTools)
 library(dplyr)
 library(readr)
-library(tmap)
+library(mapview)
 
 ```
 
 Loading Scraped Data
 ```{r}
-WAAIM_tidy_utm <- st_read("../New Data/WAAIM_tidy.shp") %>% 
+WAAIM_tidy_utm <- st_read("./New Data/WAAIM_tidy.shp") %>% 
   st_transform(crs = 26910)
 
-counties_sf_utm<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
+counties_sf_utm<- st_read('./New Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) %>%  #Filter for just WA Counties
   st_transform(crs = 26910)
 
-dam_complete_raw_utm <- st_read("../New Data/dam_complete_raw.shp") %>% 
+dam_complete_raw_utm <- st_read("./New Data/dam_complete_raw.shp") %>% 
   st_transform(crs = 26910)
 
-flowlines_utm <- st_read("../New Data/flowlinesall.shp") %>% 
+flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>% 
   st_transform(crs = 26910)
 
-catchments_utm <- st_read("../New Data/catchmentsall.shp") %>% 
+catchments_utm <- st_read("./New Data/catchmentsall_true.shp") %>% 
   st_transform(crs = 26910)
+
 ```
 
 
 Number of dams upstream of each sample site 
 ```{r}
 #selecting the counties that intersect with the catchments 
+
 county_intersect <- counties_sf_utm[lengths(st_intersects(counties_sf_utm, WAAIM_tidy_utm)) > 0,]
 dam_intersect <- dam_complete_raw_utm[lengths(st_intersects(dam_complete_raw_utm, county_intersect)) > 0,]
+
+dam_points_buf <- st_buffer(dam_complete_raw_utm, 15)
+dam_intersect <- st_intersection(catchments_utm, dam_points_buf)
+
+ggplot()+
+  geom_sf(dam_intersect)+
+  geom_sf(data = counties_sf_utm)+
+  geom_sf(data = catchments_utm)
+
+mapview::mapview(catchments_utm)+mapview(dam_intersect)
+
+#get the area of the catchment areas
+#join the dams together to the catchment areas 
+#divide the two columns 
+
 ```
 
 
 Flowline distance extracting 
 *A - Snapping dam points to flowlines
+(this has not worked for me and is not worth spending much more time on IMO)
 ```{r}
+
+#st_snap function might help 
+
+#taking the inside of the below function and trying to do it piece by piece 
 # buffer the points by the tolerance
 dam_points_buf <- st_buffer(dam_intersect, 15)
   
 # intersect the line with the buffer
 line_intersect <- st_intersection(flowlines_utm, dam_points_buf)
 
+#use ndhplus to find the nearest point on a line 
+
+mapview::mapview(line_intersect)
+
 # convert mutlinestrings (more than one road segment) into linestrings
-line_intersect <- do.call(rbind,lapply(1:nrow(line_intersect),function(x){st_cast(line_intersect[x,],"LINESTRING")}))
+#line_intersect <- do.call(rbind,lapply(1:nrow(line_intersect),function(x){st_cast(line_intersect[x,],"LINESTRING")}))
 
 # for each line intersection, calculate the nearest point on that line to our gps point
-nearest_pt <- do.call(rbind,lapply(seq_along(points$id), function(i)) 
+nearest_pt <- do.call(rbind,lapply(seq_along(points$id), ifunc))
   
-points[points$id==i,] %>%  st_nearest_points(line_intersect[line_intersect$id==i,]) %>% st_sf %>%
-  st_cast('POINT') %>% mutate(id = i)
+nearest_pt <- points[points$id==i,] %>%  
+  st_nearest_points(line_intersect[line_intersect$id==i,]) %>% 
+  st_sf %>%
+  st_cast('POINT') %>% 
+  mutate(id = i) 
+
+ifunc <- function(i){
+    points[points$id==i,] %>%  
+    st_nearest_points(line_intersect[line_intersect$id==i,]) %>% 
+    st_sf %>%
+    st_cast('POINT') %>% 
+    mutate(id = i)
+}
+
+points %>% View()
+
+nearest_pt <- do.call(rbind,lapply(seq_along(points$id), function(i){
+    points[points$id==i,] %>%  st_nearest_points(line_intersect[line_intersect$id==i,]) %>% st_sf %>%
+      st_cast('POINT') %>% mutate(id = i)
+    }))
+
   
+#__________________________________ 
 
 custom_snap <- function(flowlines_utm, dam_points_buf, tolerance) {
   # intersect the line with the buffer
@@ -133,7 +179,7 @@ custom_snap <- function(flowlines_utm, dam_points_buf, tolerance) {
   return(snapped_points)
 }
 
-gps_snap <- custom_snap(line, gps, 15) %>%
+flowlines_snap <- custom_snap(flowlines_utm, dam_intersect, 15) %>%
   cbind(st_coordinates(.))
 ```
 
@@ -152,9 +198,59 @@ gps_snap <- custom_snap(line, gps, 15) %>%
 
 ```
 
-
-Number of dams per square mile per catchment 
+Functions and intersecting dams and catchments
 ```{r}
+catchment_extract <- function(site_id, waaim_data){
+  selectingsites <- filter(waaim_data, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  catchment <- subset$CatchmentSP
+  return(catchment)
+}
 
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(
+  st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
+
+Dam_WAAIM_Join_function <- function(WAAIM_ROW_NUM, WAAIM_DATA, DAM_DATA){
+  site_id <- WAAIM_DATA$SITE_CD[WAAIM_ROW_NUM]
+  site_catchment <- catchment_extract(site_id, WAAIM_DATA)
+  site_dams <- Dam_catchment_intersect(site_catchment, DAM_DATA)
+  dams_number <- dim(site_dams)[1]
+  return(dams_number)
+}
+
+result <- data.frame(matrix(nrow = 45, ncol = 4))
+for(i in 1:dim(WAAIM_tidy_utm)[1] ){
+result[i,1] <- WAAIM_tidy_utm$SITE_CD[i]
+site_catchment <- catchment_extract(result[i,1],WAAIM_tidy_utm)
+site_dams <- Dam_catchment_intersect(site_catchment, dam_complete_raw_utm)
+result[i,2] <- dim(site_dams)[1]
+result[i,3] <- sum(site_catchment$areasqkm)
+result[i,4] <- ((result[i,2])/(result[i,3]))
+}
+result <- result %>% 
+  rename("Site_CD" = X1,
+         "Number_of_dams_upstream" = X2,
+         "Catchment_area_sqkm" = X3,
+         "Dams_per_sqkm" = X4)
+
+write.csv(result, "./New Data/Dam_catchment_data.csv")
+        
 ```
 
