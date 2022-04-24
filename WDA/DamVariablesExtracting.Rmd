@@ -198,14 +198,59 @@ flowlines_snap <- custom_snap(flowlines_utm, dam_intersect, 15) %>%
 
 ```
 
-
-Number of dams per square mile per catchment 
+Functions and intersecting dams and catchments
 ```{r}
-dams_per_area <- dam_intersect %>% 
-  st_join(catchments_utm) %>%
-  count(id.x) %>% #counting by the catchment ID
-  st_drop_geometry()
+catchment_extract <- function(site_id, waaim_data){
+  selectingsites <- filter(waaim_data, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  catchment <- subset$CatchmentSP
+  return(catchment)
+}
 
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(
+  st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
 
+Dam_WAAIM_Join_function <- function(WAAIM_ROW_NUM, WAAIM_DATA, DAM_DATA){
+  site_id <- WAAIM_DATA$SITE_CD[WAAIM_ROW_NUM]
+  site_catchment <- catchment_extract(site_id, WAAIM_DATA)
+  site_dams <- Dam_catchment_intersect(site_catchment, DAM_DATA)
+  dams_number <- dim(site_dams)[1]
+  return(dams_number)
+}
+
+result <- data.frame(matrix(nrow = 45, ncol = 4))
+for(i in 1:dim(WAAIM_tidy_utm)[1] ){
+result[i,1] <- WAAIM_tidy_utm$SITE_CD[i]
+site_catchment <- catchment_extract(result[i,1],WAAIM_tidy_utm)
+site_dams <- Dam_catchment_intersect(site_catchment, dam_complete_raw_utm)
+result[i,2] <- dim(site_dams)[1]
+result[i,3] <- sum(site_catchment$areasqkm)
+result[i,4] <- ((result[i,2])/(result[i,3]))
+}
+result <- result %>% 
+  rename("Site_CD" = X1,
+         "Number_of_dams_upstream" = X2,
+         "Catchment_area_sqkm" = X3,
+         "Dams_per_sqkm" = X4)
+
+write.csv(result, "./New Data/Dam_catchment_data.csv")
+        
 ```
 
