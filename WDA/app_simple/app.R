@@ -6,13 +6,8 @@ library(tidyverse)
 #library(nhdplusTools)
 #library(mapview)
 
-#questions:
-# one plot for all AIM Sites or multiple graphs selectable for each?
-# can dam type be included as a bar plot? or data shape mismatch?
-# what variables make sense as the two checkbox options below? 
 
 #one for each WQ, physical, bio 
-
 
 #___________________________
 
@@ -39,6 +34,12 @@ library(tidyverse)
 #at 0.01: VEG_CMPLXTY, RPRN_VEG_GC, SDGE_RSH, LWD_FREQ, Number_of_dams_upstream.x, TotalN 
 #at 0.001: WTTD_WT, WDRatio
 
+#AIC for Dams_per_sqkm dependent variable, significant variables:
+#Significant Variables
+#at 0.05: VEG_CMPLXTY,RPRN_VEG_CNPY_CVR, NON_NTVE_HRB, SDGE_RSH, pH, LWDVolume, INCSN_HT , OBSRVD_INVRT_RCHNSS, TotalN, D50 
+#at 0.01:  RPRN_VEG_GC, LWD_FREQ, WTTD_WT, Number_of_dams_upstream.x, WDRatio
+
+
 #### Load data ----
 dam_analysis <- read.csv("../FriedmanHerringOteroVanDerHout/New Data/dam_data_clean.csv")
 AICResults <- read.csv("../FriedmanHerringOteroVanDerHout/New Data/AICresults.csv")
@@ -50,7 +51,8 @@ ui <- fluidPage(theme = shinytheme("superhero"),
     sidebarPanel(
       
       # Select WQ parameters to plot (updated) 
-      selectInput(inputId = "y", 
+      ####make two more of these and call them y2 and y3 
+      selectInput(inputId = "y1", 
                   label = "Water Quality",
                   choices = c("TotalN", "TotalP", "SpC", "pH", "INSTNT_TEMP"), 
                   selected = "INSTNT_TEMP"),
@@ -60,25 +62,15 @@ ui <- fluidPage(theme = shinytheme("superhero"),
                   label = "Dam Variables",
                   choices = c("Dams per Square Mile", "Upstream Dam Count"), #update with real names 
                   selected = "Upstream Dam Count"),
-      
-      # D50
-      checkboxGroupInput(inputId = "fill",
-                         label = "D50",
-                         choices = unique(dam_analysis$D50),
-                         selected = c(26)), #this is a guess
-      
-      # Bankfull Channel Ratio - not sure if necessary or just indicate in ggplot 
-      checkboxGroupInput(inputId = "shape",
-                         label = "Bankfull Channel Width / Depth Ratio",
-                         choices = unique(dam_analysis$WDRatio),
-                         selected = c(2, 16)), #this is also a guess, I wonder if too many variables for shape options?
+    
+      ##could add a feature to change color of a selected site for an interested user 
+        ##do later if this thing actually works 
       
       # AIC for table -- do I have to do anything to indicate that this is for a separate object? 
       checkboxGroupInput(inputId = "Table",
                          label = "Significant Variables",
                          choices = unique(AICResults$), ###need to fix this to select for the columns instead of rows
                          selected = c(26)), #this is a guess
-
 
     # Output
     mainPanel(
@@ -95,36 +87,39 @@ server <- function(input, output) {
     # Define reactive formatting for filtering within columns
     #not sure what is happening here tbh, from old code 
     #update to define y here as well? 
-    filtered_dam_analysis <- reactive({
-      dam_analysis %>%
-         filter(DamVariables %in% input$x) %>% #update with column name
-         filter() #unsure how to filter for WQ parameteres in multiple columns? 
-         filter(D50 %in% input$fill) %>%
-         filter(WDRatio %in% input$shape) 
-     })
+    
+  
+    #filtered_dam_analysis <- reactive({
+      #dam_analysis %>%
+         #filter(DamVariables %in% input$x) %>% #update with column name
+         #filter() #unsure how to filter for WQ parameteres in multiple columns? 
+         #filter(D50 %in% input$fill) %>%
+         #filter(WDRatio %in% input$shape) 
+    # })
     
     # Create a ggplot object for the type of plot you have defined in the UI  
        output$scatterplot <- renderPlot({
         ggplot(dam_analysis(), 
-               aes_string(x = input$x, y = input$y,  
+               aes_string(x = input$x, y = input$y1,  
                           fill = "depth_id", shape = "site_id")) + #update shape with column name
           geom_point(alpha = 0.6, size = 4) +
           theme_light(base_size = 14) +
           scale_shape_manual(values = c(21, 24)) +
           labs(x = "Upstream Dam Count", y = expression(Concentration ~ (mu*g / L)), shape = "Bankfull Chanell Ratio", fill = "D50") + #can you customize WQ parameter name? 
           scale_fill_distiller(palette = "YlOrBr", guide = "colorbar", direction = 1)
+         ###change color or shape to identify which site it is 
           #scale_fill_viridis_c(option = "viridis", begin = 0, end = 0.8, direction = -1)
       })
        
     # Create a table that generates data for each point selected on the graph  
-       output$mytable <- renderTable({
-         brush_out <- brushedPoints(dam_analysis(), input$scatterplot_brush)
-       })
+       #output$mytable <- renderTable({
+         #brush_out <- brushedPoints(dam_analysis(), input$scatterplot_brush)
+       #})
        
     #create new data table looking at just relevant variables and use RShiny to viz that on meta level as above!!!
-       output$mytable <- renderTable({
-         brush_out <- table(AICResults, input$)
-       })
+       #output$mytable <- renderTable({
+         #brush_out <- table(AICResults, input$)
+       #})
   }
 
 
