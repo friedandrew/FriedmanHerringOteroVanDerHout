@@ -113,8 +113,8 @@ TNmodel <- lm(data = dam_analysis, TotalN ~ ReachLength + StreamOrder + VEG_CMPL
 summary(TNmodel)
 
 #Significant Variables
-#at 0.05: RPRN_VEG_CNPY_CVR, RPRN_VEG_GC, RPRN_VEG_GC, LWD_FREQ, INCSN_HT, CHN_INCSN, WTTD_WT, Dams_per_sqkm 
-#at 0.01: OBSRVD_INVRT_RCHNSS, WDRatio
+#at 0.05: RPRN_VEG_CNPY_CVR(-), RPRN_VEG_GC(+), NON_NTVE_HRB(-), LWD_FREQ(-), INCSN_HT(-), CHN_INCSN(+), WTTD_WT(+), Dams_per_sqkm(+) 
+#at 0.01: OBSRVD_INVRT_RCHNSS(-), WDRatio(-)
 
 #__________________________________________________
 
@@ -127,9 +127,9 @@ TPmodel <- lm(data = dam_analysis, TotalP ~ ReachLength + StreamOrder + RPRN_VEG
 summary(TPmodel)
 
 #Significant Variables
-#at 0.05: WDRatio
-#at 0.01: ReachLength, INSTNT_TEMP, LWD_FREQ, AMCROINVRTBRTE_CNT
-#at 0.001: StreamOrder, BNK_STBLTY, D50
+#at 0.05: WDRatio(-)
+#at 0.01: ReachLength(+), INSTNT_TEMP(-), LWD_FREQ(-), MACROINVRTBRTE_CNT(-)
+#at 0.001: StreamOrder(+), BNK_STBLTY(-), D50(-)
 
 #___________________________________________-
 
@@ -142,11 +142,11 @@ Invert_model <- lm(data = dam_analysis, OBSRVD_INVRT_RCHNSS ~ ReachLength + Stre
 summary(Invert_model)
 
 #Significant Variables
-#at 0.05: StreamOrder, RPRN_VEG_CNPY_CVR, RPRN_VEG_UNDRSTRY_CVR, RPRN_VEG_GC, NTVE_HRB, Number_of_dams_upstream.x, D50, Dams_per_sqkm
-#at 0.01: LWD_FREQ, BNK_STBLTY, INCSN_HT, CHN_INCSN, WTTD_WT, WDRatio, Catchment_are_sqkm
-#at 0.001: Non_NTVE_HRB, TotalN
+#at 0.05: StreamOrder(+), RPRN_VEG_CNPY_CVR(-), RPRN_VEG_UNDRSTRY_CVR(-), RPRN_VEG_GC(+), NTVE_HRB(-), Number_of_dams_upstream.x(-), D50(-), Dams_per_sqkm(+)
+#at 0.01: LWD_FREQ(-), BNK_STBLTY(-), INCSN_HT(-), CHN_INCSN(+), WTTD_WT(+), WDRatio(-), Catchment_area_sqkm(-)
+#at 0.001: NON_NTVE_HRB(-), TotalN(-)
 
-#___________________________________________-
+#___________________________________________
 
 #AIC for Bank Full Height
 WD_AIC <- lm(data = dam_analysis, WDRatio ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + TotalN + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + BNKFLL_HT + Catchment_area_sqkm + Dams_per_sqkm)
@@ -157,10 +157,10 @@ WD_model <- lm(data = dam_analysis, WDRatio ~ ReachLength + StreamOrder + VEG_CM
 summary(WD_model)
 
 #Significant Variables
-#at 0.05: RPRN_VEG_CNPY_CVR, RPRN_VEG_GC, NTVE_HRB, SDGE_RSH, BNK_STBLTY, TotalN, INCSN_HT, CHN_INCSN, WTTD_WT, Number_of_dams_upstream.x, D50, Dams_per_sqkm
-#at 0.01: NON_NTVE_HRB, LWD_FREQ, OBSRVD_INVRT_RCHNSS
+#at 0.05: RPRN_VEG_CNPY_CVR(-), RPRN_VEG_GC(+), NTVE_HRB(-), SDGE_RSH(+), BNK_STBLTY(-), TotalN(-), INCSN_HT(-), CHN_INCSN(+), WTTD_WT(+), Number_of_dams_upstream.x(-), D50(-), Dams_per_sqkm(+)
+#at 0.01: NON_NTVE_HRB(-), LWD_FREQ(-), OBSRVD_INVRT_RCHNSS(-)
 
-#___________________________________________-
+#___________________________________________
 
 #AIC for D50 aka particle sizes
 D50AIC <- lm(data = dam_analysis, D50 ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + TotalN + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
@@ -171,9 +171,9 @@ D50model <- lm(data = dam_analysis, D50 ~ StreamOrder + VEG_CMPLXTY + RPRN_VEG_C
 summary(D50model)
 
 #Significant Variables
-#at 0.05: StreamOrder, RPRN_VEG_CNPY_CVR, NON_NTVE_HRB, pH, INCSN_HT, OBSRVD_INVRT_RCHNSS, Dams_per_sqkm
-#at 0.01: VEG_CMPLXTY, RPRN_VEG_GC, SDGE_RSH, LWD_FREQ, Number_of_dams_upstream.x, TotalN 
-#at 0.001: WTTD_WT, WDRatio
+#at 0.05: StreamOrder(+), RPRN_VEG_CNPY_CVR(-), NON_NTVE_HRB(-), pH(+), INCSN_HT(-), OBSRVD_INVRT_RCHNSS(-), Dams_per_sqkm(+)
+#at 0.01: VEG_CMPLXTY(-), RPRN_VEG_GC(+), SDGE_RSH(+), LWD_FREQ(-), Number_of_dams_upstream.x(-), TotalN(-) 
+#at 0.001: WTTD_WT(+), WDRatio(-)
 
 
 #___________________________________________-
@@ -192,9 +192,8 @@ Dams_model <- lm(formula = Dams_per_sqkm ~ StreamOrder + VEG_CMPLXTY + RPRN_VEG_
 summary(Dams_model)
 
 #Significant Variables
-#at 0.05: VEG_CMPLXTY,RPRN_VEG_CNPY_CVR, NON_NTVE_HRB, SDGE_RSH, pH, LWDVolume, INCSN_HT , OBSRVD_INVRT_RCHNSS, TotalN, D50 
-#at 0.01:  RPRN_VEG_GC, LWD_FREQ, WTTD_WT, Number_of_dams_upstream.x, WDRatio
-#at 0.001: 
+#at 0.05: VEG_CMPLXTY(+), RPRN_VEG_CNPY_CVR(+), NON_NTVE_HRB(+), SDGE_RSH(-), pH(-), LWDVolume(-), INCSN_HT(+), OBSRVD_INVRT_RCHNSS(+), TotalN(+), D50(+) 
+#at 0.01:  RPRN_VEG_GC(-), LWD_FREQ(+), WTTD_WT(-), Number_of_dams_upstream.x(+), WDRatio(+)
 
 
 ```

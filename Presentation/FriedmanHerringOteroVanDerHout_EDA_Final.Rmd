@@ -251,7 +251,8 @@ WAAIM_tidy_dams <- left_join(WAAIM_tidy, result)
 #write.csv(WAAIM_tidy_dams, "../New Data/WAAIM_tidy_dams.csv")
 
 
-Dam_complete_catchment <- Dam_catchment_intersect(catchment_outer_frame, dam_complete_raw)
+Dam_complete_catchment <- Dam_catchment_intersect(catchments_utm, dam_complete_raw_utm)
+st_write(Dam_complete_catchment, "../New Data/Dam_complete_catchment.shp")
 
 #dams_upstream <- st_read("../New Data/WAAIM_tidy_dams.csv", options=c("X_POSSIBLE_NAMES=x","Y_POSSIBLE_NAMES=y"))
 ```
