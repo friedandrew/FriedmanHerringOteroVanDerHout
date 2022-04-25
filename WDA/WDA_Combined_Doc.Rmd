@@ -257,11 +257,14 @@ summary(Dams_model)
 #at 0.01:  RPRN_VEG_GC, LWD_FREQ, WTTD_WT, Number_of_dams_upstream.x, WDRatio
 #at 0.001: 
 
+AICresults <- read.csv("./New Data/AICresults.csv")
+
 
 ```
 
 Conclusions:
-
+-Adding in Maps
+-adding in positive or negative correlated
 
 
 
