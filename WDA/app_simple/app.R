@@ -11,9 +11,37 @@ library(tidyverse)
 # can dam type be included as a bar plot? or data shape mismatch?
 # what variables make sense as the two checkbox options below? 
 
+#one for each WQ, physical, bio 
+
+
+#___________________________
+
+#For TN as dependent variable, significant variables:
+#at 0.05: RPRN_VEG_CNPY_CVR, RPRN_VEG_GC, RPRN_VEG_GC, LWD_FREQ, INCSN_HT, CHN_INCSN, WTTD_WT, Dams_per_sqkm 
+#at 0.01: OBSRVD_INVRT_RCHNSS, WDRatio
+
+#For TP as dependent variable, significant variables:
+#at 0.05: WDRatio
+#at 0.01: ReachLength, INSTNT_TEMP, LWD_FREQ, AMCROINVRTBRTE_CNT
+#at 0.001: StreamOrder, BNK_STBLTY, D50
+
+#For Observed Invertebrate Richness as dependent variable, significant variables:
+#at 0.05: StreamOrder, RPRN_VEG_CNPY_CVR, RPRN_VEG_UNDRSTRY_CVR, RPRN_VEG_GC, NTVE_HRB, Number_of_dams_upstream.x, D50, Dams_per_sqkm
+#at 0.01: LWD_FREQ, BNK_STBLTY, INCSN_HT, CHN_INCSN, WTTD_WT, WDRatio, Catchment_are_sqkm
+#at 0.001: Non_NTVE_HRB, TotalN
+
+#For Channel Geometry Ratio dependent variable, significant variables:
+#at 0.05: RPRN_VEG_CNPY_CVR, RPRN_VEG_GC, NTVE_HRB, SDGE_RSH, BNK_STBLTY, TotalN, INCSN_HT, CHN_INCSN, WTTD_WT, Number_of_dams_upstream.x, D50, Dams_per_sqkm
+#at 0.01: NON_NTVE_HRB, LWD_FREQ, OBSRVD_INVRT_RCHNSS
+
+#For D50 as dependent variable, significant variables:
+#at 0.05: StreamOrder, RPRN_VEG_CNPY_CVR, NON_NTVE_HRB, pH, INCSN_HT, OBSRVD_INVRT_RCHNSS, Dams_per_sqkm
+#at 0.01: VEG_CMPLXTY, RPRN_VEG_GC, SDGE_RSH, LWD_FREQ, Number_of_dams_upstream.x, TotalN 
+#at 0.001: WTTD_WT, WDRatio
 
 #### Load data ----
-PracticeFile <- read.csv("../FriedmanHerringOteroVanDerHout/WDA/app_simple/data/PrF_Ratio.csv") 
+dam_analysis <- read.csv("../FriedmanHerringOteroVanDerHout/New Data/dam_data_clean.csv")
+AICResults <- read.csv("../FriedmanHerringOteroVanDerHout/New Data/AICresults.csv")
 
 #### Define UI ----
 ui <- fluidPage(theme = shinytheme("superhero"),
@@ -36,14 +64,20 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       # D50
       checkboxGroupInput(inputId = "fill",
                          label = "D50",
-                         choices = unique(PracticeFile$D50),
+                         choices = unique(dam_analysis$D50),
                          selected = c(26)), #this is a guess
       
       # Bankfull Channel Ratio - not sure if necessary or just indicate in ggplot 
       checkboxGroupInput(inputId = "shape",
                          label = "Bankfull Channel Width / Depth Ratio",
-                         choices = unique(PracticeFile$WDRatio),
+                         choices = unique(dam_analysis$WDRatio),
                          selected = c(2, 16)), #this is also a guess, I wonder if too many variables for shape options?
+      
+      # AIC for table -- do I have to do anything to indicate that this is for a separate object? 
+      checkboxGroupInput(inputId = "Table",
+                         label = "Significant Variables",
+                         choices = unique(AICResults$), ###need to fix this to select for the columns instead of rows
+                         selected = c(26)), #this is a guess
 
 
     # Output
@@ -55,11 +89,14 @@ ui <- fluidPage(theme = shinytheme("superhero"),
 #### Define server  ----
 server <- function(input, output) {
   
+  ## we can create multiple output files using render plot
+  #put the code within the {}
+  
     # Define reactive formatting for filtering within columns
     #not sure what is happening here tbh, from old code 
     #update to define y here as well? 
-    filtered_PracticeFile <- reactive({
-       PracticeFile %>%
+    filtered_dam_analysis <- reactive({
+      dam_analysis %>%
          filter(DamVariables %in% input$x) %>% #update with column name
          filter() #unsure how to filter for WQ parameteres in multiple columns? 
          filter(D50 %in% input$fill) %>%
@@ -68,7 +105,7 @@ server <- function(input, output) {
     
     # Create a ggplot object for the type of plot you have defined in the UI  
        output$scatterplot <- renderPlot({
-        ggplot(PracticeFile(), 
+        ggplot(dam_analysis(), 
                aes_string(x = input$x, y = input$y,  
                           fill = "depth_id", shape = "site_id")) + #update shape with column name
           geom_point(alpha = 0.6, size = 4) +
@@ -79,15 +116,15 @@ server <- function(input, output) {
           #scale_fill_viridis_c(option = "viridis", begin = 0, end = 0.8, direction = -1)
       })
        
-    ## we can create multiple output files using render plot
-       #put the code within the {}
     # Create a table that generates data for each point selected on the graph  
-       #would be cool if this table showed summaries of dam stats for each AIM site 
-       #what is the difference between reactive and render?  
        output$mytable <- renderTable({
-         brush_out <- brushedPoints(PracticeFile(), input$scatterplot_brush)
+         brush_out <- brushedPoints(dam_analysis(), input$scatterplot_brush)
        })
        
+    #create new data table looking at just relevant variables and use RShiny to viz that on meta level as above!!!
+       output$mytable <- renderTable({
+         brush_out <- table(AICResults, input$)
+       })
   }
 
 

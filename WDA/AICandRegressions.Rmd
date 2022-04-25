@@ -31,9 +31,9 @@ theme_set(theme_light())
 
 Loading Scraped Data - may not need all of these
 ```{r load data}
-WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+WAAIM_tidy_dams <- st_read("../New Data/WAAIM_tidy_dams.csv")
 
-catchment_data <- read.csv("./New Data/Dam_catchment_data.csv")
+catchment_data <- read.csv("../New Data/Dam_catchment_data.csv")
 
 ```
 
