@@ -1,0 +1,267 @@
+---
+title: "WDA_Final"
+author: "Andrew Friedman-Herring"
+date: "4/21/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+Setup
+```{r}
+library(sf)
+library(tidyverse)
+library(nhdplusTools)
+library(dplyr)
+library(readr)
+library(mapview)
+
+```
+
+Loading Scraped Data - 
+Some of this data was scraped and wrangled as part of our EDA assignment, some of it is wrangled and scraped specifically for WDA
+```{r}
+WAAIM_tidy_utm <- st_read("./New Data/WAAIM_tidy.shp") %>% 
+  st_transform(crs = 26910)
+
+counties_sf_utm<- st_read('./New Data/cb_2018_us_county_20m.shp') %>% 
+  filter(STATEFP == 53) %>%  #Filter for just WA Counties
+  st_transform(crs = 26910)
+
+dam_complete_raw_utm <- st_read("./New Data/dam_complete_raw.shp") %>% 
+  st_transform(crs = 26910)
+
+flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>% 
+  st_transform(crs = 26910)
+
+catchments_utm <- st_read("./New Data/catchmentsall_true.shp") %>% 
+  st_transform(crs = 26910)
+
+WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+
+catchment_data <- read.csv("./New Data/Dam_catchment_data.csv")
+
+dam_analysis <- read.csv("./New Data/dam_data_clean.csv")
+
+
+```
+
+Data Scraping and Wrangling done for WDA (Code does not run when knitted)
+```{r eval=FALSE, include=TRUE}
+catchment_extract <- function(site_id, waaim_data){
+  selectingsites <- filter(waaim_data, SITE_CD == site_id) #takes site ID and filters dataset 
+  MIDLAT <- selectingsites$MIDLAT
+  MIDLONG <- selectingsites$MIDLONG
+  start_point <- st_sfc(st_point(c(MIDLONG, MIDLAT)), crs = 4269)
+  start_comid <- discover_nhdplus_id(start_point)
+  NLDI <- navigate_nldi(list(featureSource = "comid", featureID = start_comid), 
+                          mode = "upstreamTributaries", 
+                          distance_km = 1000)
+  subset_file <- tempfile(fileext = ".gpkg")
+  subset <- subset_nhdplus(comids = as.integer(NLDI$UT$nhdplus_comid), 
+                         output_file = subset_file, #the above temporary file 
+                         nhdplus_data = "download", 
+                         flowline_only = FALSE, 
+                         return_data = TRUE, overwrite = TRUE)
+  catchment <- subset$CatchmentSP
+  return(catchment)
+}
+
+Dam_catchment_intersect <- function(CATCHMENT, DAM_DATA){
+  DAM_DATA_UTM <- st_transform(DAM_DATA, crs = 26910)
+  CATCHMENT_UTM <- st_transform(CATCHMENT, crs = 26910)
+  DAM_SUBSET <- DAM_DATA_UTM[lengths(
+  st_intersects(DAM_DATA_UTM, CATCHMENT_UTM)) > 0,]
+  return(DAM_SUBSET)
+}
+
+Dam_WAAIM_Join_function <- function(WAAIM_ROW_NUM, WAAIM_DATA, DAM_DATA){
+  site_id <- WAAIM_DATA$SITE_CD[WAAIM_ROW_NUM]
+  site_catchment <- catchment_extract(site_id, WAAIM_DATA)
+  site_dams <- Dam_catchment_intersect(site_catchment, DAM_DATA)
+  dams_number <- dim(site_dams)[1]
+  return(dams_number)
+}
+
+result <- data.frame(matrix(nrow = 45, ncol = 4))
+for(i in 1:dim(WAAIM_tidy_utm)[1] ){
+result[i,1] <- WAAIM_tidy_utm$SITE_CD[i]
+site_catchment <- catchment_extract(result[i,1],WAAIM_tidy_utm)
+site_dams <- Dam_catchment_intersect(site_catchment, dam_complete_raw_utm)
+result[i,2] <- dim(site_dams)[1]
+result[i,3] <- sum(site_catchment$areasqkm)
+result[i,4] <- ((result[i,2])/(result[i,3]))
+}
+result <- result %>% 
+  rename("Site_CD" = X1,
+         "Number_of_dams_upstream" = X2,
+         "Catchment_area_sqkm" = X3,
+         "Dams_per_sqkm" = X4)
+
+write.csv(result, "./New Data/Dam_catchment_data.csv")
+
+#_________________________________________________________
+
+#check class of columns, we want numeric for analysis
+sapply(WAAIM_tidy_dams, class)
+
+#Specify columns want to change to numeric for WAAIM data
+i <- c(5:58)  
+
+#convert the columns indicated in i above to numeric
+WAAIM_tidy_dams[ , i] <- apply(WAAIM_tidy_dams[ , i], 2,            
+                    function(x) as.numeric(as.character(x)))
+
+#check that all columns we want are numeric
+sapply(WAAIM_tidy_dams, class)
+
+#_________________________________________________________
+
+#check class of catchment_data variables
+sapply(catchment_data, class)
+
+#Specify columns want to change to numeric for WAAIM data
+j <- c(1,3)  
+
+#convert the columns indicated in i above to numeric
+catchment_data[ , j] <- apply(catchment_data[ , j], 2,            
+                    function(x) as.numeric(as.character(x)))
+
+#check class of catchment_data variables
+sapply(catchment_data, class)
+
+#rename Site_CD to SITE_CD so can join
+names(catchment_data)[names(catchment_data)=="Site_CD"] <- "SITE_CD"
+names(catchment_data)
+
+#merge the dfs, must be the same class to merge
+dam_data_merge = WAAIM_tidy_dams %>% left_join(catchment_data,by="SITE_CD")
+
+#check which columns have NAs, only works on numeric columns
+colSums(is.na(dam_data_clean))
+
+#calculate a channel geometry column and add it onto df
+#select columns of interest, gets rid of geometry so can save as a csv file
+#drop rows for sites w/ NA for TotalP&N, invert variables, and D50
+dam_data_clean <- dam_data_merge %>% 
+  mutate(WDRatio = round(BNKFLL_WT / BNKFLL_HT)) %>% 
+  select(OBJECTID, ReachLength, StreamOrder, VEG_CMPLXTY, RPRN_VEG_CNPY_CVR, RPRN_VEG_UNDRSTRY_CVR, RPRN_VEG_GC, NON_NTVE_WDY, NTVE_WDY, NON_NTVE_HRB, NTVE_HRB, SDGE_RSH, TotalN, TotalP, SpC, pH, INSTNT_TEMP, LWD_FREQ, LWDVolume, BNK_STBLTY, BNKFLL_HT, INCSN_HT, CHN_INCSN, BNKFLL_WT, WTTD_WT, WDRatio, OBSRVD_INVRT_RCHNSS, MACROINVRTBRTE_CNT, D50, Number_of_dams_upstream.x, Catchment_area_sqkm, Dams_per_sqkm) %>% 
+  slice(-c(7,9,10,13,14,30,33,39,42,43,44))
+
+
+#check data is complete, no NAs
+colSums(is.na(dam_data_clean))
+
+#save cleaned data as a csv
+write.csv(dam_data_clean, "./New Data/dam_data_clean.csv", row.names=FALSE)
+```
+
+# AIC Models and Regressions
+We use AIC models to select which explanatory variables to use in a model. It can be tempting to throw all variables with available data into a model, but that can get confusing and not actually increase the explanatory power of a model. By using AIC to select variables, we can minimize covariates and end up with a simpler model that is informative and easier to interpret.
+
+We perform regressions to see if and to what extent explanatory variables influence our dependent variables. We use the common p-value of below 0.05 to indicate significant relationships.
+```{r AIC}
+#read in data for the analysis
+dam_analysis <- read.csv("./New Data/dam_data_clean.csv")
+
+#AIC for total nitrogen as our dependent variable (DV)
+TNAIC <- lm(data = dam_analysis, TotalN ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(TNAIC)
+TNmodel <- lm(data = dam_analysis, TotalN ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+summary(TNmodel)
+
+#Significant Variables
+#at 0.05: RPRN_VEG_CNPY_CVR, RPRN_VEG_GC, RPRN_VEG_GC, LWD_FREQ, INCSN_HT, CHN_INCSN, WTTD_WT, Dams_per_sqkm 
+#at 0.01: OBSRVD_INVRT_RCHNSS, WDRatio
+
+#__________________________________________________
+
+#AIC for total phosphorous as our DV
+TPAIC <- lm(data = dam_analysis, TotalP ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalN + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(TPAIC)
+TPmodel <- lm(data = dam_analysis, TotalP ~ ReachLength + StreamOrder + RPRN_VEG_CNPY_CVR + RPRN_VEG_GC + NON_NTVE_HRB + SDGE_RSH + INSTNT_TEMP + LWD_FREQ + BNK_STBLTY + MACROINVRTBRTE_CNT + D50 + WDRatio)
+summary(TPmodel)
+
+#Significant Variables
+#at 0.05: WDRatio
+#at 0.01: ReachLength, INSTNT_TEMP, LWD_FREQ, AMCROINVRTBRTE_CNT
+#at 0.001: StreamOrder, BNK_STBLTY, D50
+
+#___________________________________________-
+
+#AIC for Observed Invertebrate Richness
+Invert_AIC <- lm(data = dam_analysis, OBSRVD_INVRT_RCHNSS ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + TotalN + MACROINVRTBRTE_CNT + D50 + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(Invert_AIC)
+Invert_model <- lm(data = dam_analysis, OBSRVD_INVRT_RCHNSS ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + TotalN + MACROINVRTBRTE_CNT + D50 + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+summary(Invert_model)
+
+#Significant Variables
+#at 0.05: StreamOrder, RPRN_VEG_CNPY_CVR, RPRN_VEG_UNDRSTRY_CVR, RPRN_VEG_GC, NTVE_HRB, Number_of_dams_upstream.x, D50, Dams_per_sqkm
+#at 0.01: LWD_FREQ, BNK_STBLTY, INCSN_HT, CHN_INCSN, WTTD_WT, WDRatio, Catchment_are_sqkm
+#at 0.001: Non_NTVE_HRB, TotalN
+
+#___________________________________________-
+
+#AIC for Bank Full Height
+WD_AIC <- lm(data = dam_analysis, WDRatio ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + TotalN + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + BNKFLL_HT + Catchment_area_sqkm + Dams_per_sqkm)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(WD_AIC)
+WD_model <- lm(data = dam_analysis, WDRatio ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + pH + SpC + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + TotalN + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + BNKFLL_HT + Catchment_area_sqkm + Dams_per_sqkm)
+summary(WD_model)
+
+#Significant Variables
+#at 0.05: RPRN_VEG_CNPY_CVR, RPRN_VEG_GC, NTVE_HRB, SDGE_RSH, BNK_STBLTY, TotalN, INCSN_HT, CHN_INCSN, WTTD_WT, Number_of_dams_upstream.x, D50, Dams_per_sqkm
+#at 0.01: NON_NTVE_HRB, LWD_FREQ, OBSRVD_INVRT_RCHNSS
+
+#___________________________________________-
+
+#AIC for D50 aka particle sizes
+D50AIC <- lm(data = dam_analysis, D50 ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + TotalN + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(D50AIC)
+D50model <- lm(data = dam_analysis, D50 ~ StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_GC + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + INCSN_HT + CHN_INCSN + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + TotalN + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
+summary(D50model)
+
+#Significant Variables
+#at 0.05: StreamOrder, RPRN_VEG_CNPY_CVR, NON_NTVE_HRB, pH, INCSN_HT, OBSRVD_INVRT_RCHNSS, Dams_per_sqkm
+#at 0.01: VEG_CMPLXTY, RPRN_VEG_GC, SDGE_RSH, LWD_FREQ, Number_of_dams_upstream.x, TotalN 
+#at 0.001: WTTD_WT, WDRatio
+
+
+#___________________________________________-
+
+#AIC for Dams_per_sqkm
+Dams_AIC <- lm(data = dam_analysis, Dams_per_sqkm ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + TotalN + WDRatio + Catchment_area_sqkm + D50)
+
+#Choose a model by AIC in a Stepwise Algorithm
+step(Dams_AIC)
+Dams_model <- lm(formula = Dams_per_sqkm ~ StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + 
+    RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_HRB + NTVE_HRB + 
+    SDGE_RSH + TotalP + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + 
+    BNK_STBLTY + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + 
+    Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + 
+    TotalN + WDRatio + Catchment_area_sqkm + D50, data = dam_analysis)
+summary(Dams_model)
+
+#Significant Variables
+#at 0.05: VEG_CMPLXTY,RPRN_VEG_CNPY_CVR, NON_NTVE_HRB, SDGE_RSH, pH, LWDVolume, INCSN_HT , OBSRVD_INVRT_RCHNSS, TotalN, D50 
+#at 0.01:  RPRN_VEG_GC, LWD_FREQ, WTTD_WT, Number_of_dams_upstream.x, WDRatio
+#at 0.001: 
+
+
+```
+
+Conclusions:
+
+
+
+
