@@ -38,6 +38,9 @@ flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>%
 catchments_utm <- st_read("./New Data/catchmentsall_true.shp") %>% 
   st_transform(crs = 26910)
 
+dam_complete_catchment_utm <- st_read("./New Data/dam_complete_catchment.shp") %>% 
+  st_transform(crs = 26910)
+
 WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
 
 catchment_data <- read.csv("./New Data/Dam_catchment_data.csv")
@@ -47,7 +50,33 @@ dam_analysis <- read.csv("./New Data/dam_data_clean.csv")
 
 ```
 
-Data Scraping and Wrangling done for WDA (Code does not run when knitted)
+Spatial Visualization 
+
+```{r}
+ggplot(counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = catchments_utm)+
+  geom_sf(data = WAAIM_tidy_utm, color = "green")
+
+ggplot(counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = catchments_utm)+
+  geom_sf(data = dam_complete_raw_utm, color = "dark red")+
+  geom_sf(data = WAAIM_tidy_utm, color = "green")
+
+ggplot(counties_sf_utm)+
+  geom_sf()+
+  geom_sf(data = catchments_utm)+
+  geom_sf(data = dam_complete_catchment_utm, color = "dark red")+
+  geom_sf(data = WAAIM_tidy_utm, color = "green")
+
+
+
+```
+
+
+
+Data Scraping and Wrangling done for WDA 
 ```{r eval=FALSE, include=TRUE}
 catchment_extract <- function(site_id, waaim_data){
   selectingsites <- filter(waaim_data, SITE_CD == site_id) #takes site ID and filters dataset 
@@ -158,7 +187,7 @@ write.csv(dam_data_clean, "./New Data/dam_data_clean.csv", row.names=FALSE)
 ```
 
 # AIC Models and Regressions
-We use AIC models to select which explanatory variables to use in a model. It can be tempting to throw all variables with available data into a model, but that can get confusing and not actually increase the explanatory power of a model. By using AIC to select variables, we can minimize covariates and end up with a simpler model that is informative and easier to interpret.
+We used AIC models to select which explanatory variables to use in a linear model. It can be tempting to throw all variables with available data into a model, but that can get confusing and not actually increase the explanatory power of a model. By using AIC to select variables, we can minimize covariates and end up with a simpler model that is informative and easier to interpret.
 
 We perform regressions to see if and to what extent explanatory variables influence our dependent variables. We use the common p-value of below 0.05 to indicate significant relationships.
 ```{r AIC}
