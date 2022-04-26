@@ -1,74 +1,94 @@
 ---
-title: "WDA_Final"
-author: "Andrew Friedman-Herring"
-date: "4/21/2022"
-output: html_document
+title: "WDA Final - Assesing AIM Water Quality Monitoring Data and Dams in WA State"
+author: "Andrew Friedman-Herring, Cat Otero, Jackie Van der Hout"
+date: "Spring 2022"
+output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
 
 
 Setup
-```{r}
+```{r include=FALSE}
 library(sf)
 library(tidyverse)
 library(nhdplusTools)
 library(dplyr)
 library(readr)
 library(mapview)
+library(knitr)
 
 ```
 
-Loading Scraped Data - 
-Some of this data was scraped and wrangled as part of our EDA assignment, some of it is wrangled and scraped specifically for WDA
-```{r}
-WAAIM_tidy_utm <- st_read("./New Data/WAAIM_tidy.shp") %>% 
+
+```{r include=FALSE}
+WAAIM_tidy_utm <- st_read("../New Data/WAAIM_tidy.shp") %>% 
   st_transform(crs = 26910)
 
-counties_sf_utm<- st_read('./New Data/cb_2018_us_county_20m.shp') %>% 
+counties_sf_utm<- st_read('../New Data/cb_2018_us_county_20m.shp') %>% 
   filter(STATEFP == 53) %>%  #Filter for just WA Counties
   st_transform(crs = 26910)
 
-dam_complete_raw_utm <- st_read("./New Data/dam_complete_raw.shp") %>% 
+dam_complete_raw_utm <- st_read("../New Data/dam_complete_raw.shp") %>% 
   st_transform(crs = 26910)
 
-flowlines_utm <- st_read("./New Data/flowlinesall.shp") %>% 
+flowlines_utm <- st_read("../New Data/flowlinesall.shp") %>% 
   st_transform(crs = 26910)
 
-catchments_utm <- st_read("./New Data/catchmentsall_true.shp") %>% 
+catchments_utm <- st_read("../New Data/catchmentsall_true.shp") %>% 
   st_transform(crs = 26910)
 
-dam_complete_catchment_utm <- st_read("./New Data/dam_complete_catchment.shp") %>% 
+dam_complete_catchment_utm <- st_read("../New Data/dam_complete_catchment.shp") %>% 
   st_transform(crs = 26910)
 
-WAAIM_tidy_dams <- st_read("./New Data/WAAIM_tidy_dams.csv")
+WAAIM_tidy_dams <- st_read("../New Data/WAAIM_tidy_dams.csv")
 
-catchment_data <- read.csv("./New Data/Dam_catchment_data.csv")
+catchment_data <- read.csv("../New Data/Dam_catchment_data.csv")
 
-dam_analysis <- read.csv("./New Data/dam_data_clean.csv")
+dam_analysis <- read.csv("../New Data/dam_data_clean.csv")
 
 
 ```
 
-Spatial Visualization 
+Purpose of our Research Project:
 
-```{r}
+We chose this project because water quality is an incredibly important issue, and we wanted to see how physical and biological water quality indicators collected by the BLM correlate with each other. Dams also have a very large impact on streams and rivers in the US, as they increase stream temperatures and provide conditions for algal blooms which can reduce water quality. Dams are also a very overlooked piece of infrastructure. By collecting the number of dams upstream of each monitoring site, we are able to add that value to the AIM data set and incorporate it with our analysis of how water quality variables correlate.
+
+Data Used:
+For our analysis, we used the BLM Assessment, Inventory, and Monitoring (AIM) Data, which we found and data scraped from online in a GeoJSON format. 
+
+We also used the Washington State Department of Ecology Inventory of Statewide Dams, which was also found and data scraped from online in a GeoJSON format. This information included latitudes and longitudes for all 57,000 dams in Washington State, as well as their fish barrier classification, which ranged from "Not a barrier" to "Complete Fish Barrier". 
+
+Finally, we used the National Hydrography Dataset of Flowlines and Catchments developed by the US EPA and USGS to connect first two data set spatially. This dataset was used in the form of the NHDplusTools R package to find the catchment and flowline data upstream of each monitoring site. 
+
+Data Wrangling:
+
+ The data wrangling phase of our project was the most time and code intensive, as we were trying to intersect two very large data sets spatially to create a new variable to add to the AIM data set. Because there were 45 AIM sites in Washington, we had to repeat this intersection for all 45 sites. 
+  We accomplished this by writing a custom function that extracted the catchment above a monitoring site and saved it as a a spatial polygon object. We then wrote a 'for' loop that would apply this catchment extraction function for all 45 sites and save them as one combined spatial dataframe. We repeated this process for the flowlines above each monitoring site as well to be used in a future analysis. 
+  We then wrote another set of functions that takes the catchment data, intersects it with the inventory of dams and returns the number of dams contained in that catchment, the area of the catchment in square kilometers, and the dams per square kilometer. We then wrote another 'for' loop to apply this function to all 45 AIM sites, and return a data frame containing the number of dams above each AIM site. This was then joined to the original AIM dataframe, effectively adding a column to the AIM data set counting how many dams were above each monitoring site. 
+
+Spatial Visualization:
+
+```{r echo=FALSE}
 ggplot(counties_sf_utm)+
   geom_sf()+
   geom_sf(data = catchments_utm)+
-  geom_sf(data = WAAIM_tidy_utm, color = "green")
+  geom_sf(data = WAAIM_tidy_utm, color = "green")+
+  labs(title = "AIM Sites and Upstream Catchements")
 
 ggplot(counties_sf_utm)+
   geom_sf()+
   geom_sf(data = catchments_utm)+
   geom_sf(data = dam_complete_raw_utm, color = "dark red")+
-  geom_sf(data = WAAIM_tidy_utm, color = "green")
+  geom_sf(data = WAAIM_tidy_utm, color = "green")+
+  labs(title = "AIM Catchements and Every Dams in WA")
 
 ggplot(counties_sf_utm)+
   geom_sf()+
   geom_sf(data = catchments_utm)+
   geom_sf(data = dam_complete_catchment_utm, color = "dark red")+
-  geom_sf(data = WAAIM_tidy_utm, color = "green")
+  geom_sf(data = WAAIM_tidy_utm, color = "green")+
+  labs(title = "All of the Dams within an AIM Catchment")
 
 
 
@@ -130,8 +150,6 @@ result <- result %>%
 
 write.csv(result, "./New Data/Dam_catchment_data.csv")
 
-#_________________________________________________________
-
 #check class of columns, we want numeric for analysis
 sapply(WAAIM_tidy_dams, class)
 
@@ -183,16 +201,18 @@ dam_data_clean <- dam_data_merge %>%
 colSums(is.na(dam_data_clean))
 
 #save cleaned data as a csv
-write.csv(dam_data_clean, "./New Data/dam_data_clean.csv", row.names=FALSE)
+#write.csv(dam_data_clean, "./New Data/dam_data_clean.csv", row.names=FALSE)
+
+
 ```
 
-# AIC Models and Regressions
+# Analysis: AIC Models and Regressions
 We used AIC models to select which explanatory variables to use in a linear model. It can be tempting to throw all variables with available data into a model, but that can get confusing and not actually increase the explanatory power of a model. By using AIC to select variables, we can minimize covariates and end up with a simpler model that is informative and easier to interpret.
 
-We perform regressions to see if and to what extent explanatory variables influence our dependent variables. We use the common p-value of below 0.05 to indicate significant relationships.
-```{r AIC}
+We performed regressions to see if and to what extent explanatory variables influence our dependent variables. We used the common p-value of below 0.05 to indicate significant relationships.
+```{r AIC, include=FALSE}
 #read in data for the analysis
-dam_analysis <- read.csv("./New Data/dam_data_clean.csv")
+dam_analysis <- read.csv("../New Data/dam_data_clean.csv")
 
 #AIC for total nitrogen as our dependent variable (DV)
 TNAIC <- lm(data = dam_analysis, TotalN ~ ReachLength + StreamOrder + VEG_CMPLXTY + RPRN_VEG_CNPY_CVR + RPRN_VEG_UNDRSTRY_CVR + RPRN_VEG_GC + NON_NTVE_WDY + NTVE_WDY + NON_NTVE_HRB + NTVE_HRB + SDGE_RSH + TotalP + SpC + pH + INSTNT_TEMP + LWD_FREQ + LWDVolume + BNK_STBLTY + BNKFLL_HT + INCSN_HT + CHN_INCSN + BNKFLL_WT + WTTD_WT + Number_of_dams_upstream.x + OBSRVD_INVRT_RCHNSS + MACROINVRTBRTE_CNT + D50 + WDRatio + Catchment_area_sqkm + Dams_per_sqkm)
@@ -205,6 +225,25 @@ summary(TNmodel)
 #Significant Variables with the positive or negative correlation indicated in pararentheses
 #at 0.05: RPRN_VEG_CNPY_CVR(-), RPRN_VEG_GC(+), NON_NTVE_HRB(-), LWD_FREQ(-), INCSN_HT(-), CHN_INCSN(+), WTTD_WT(+), Dams_per_sqkm(+) 
 #at 0.01: OBSRVD_INVRT_RCHNSS(-), WDRatio(-)
+
+tn_lm_0.05 <- c("RPRN_VEG_CNPY_CVR", "RPRN_VEG_GC", "NON_NTVE_HRB", "LWD_FREQ", "INCSN_HT", "CHN_INCSN", "WTTD_WT", "Dams_per_sqkm")
+direction_correlated_tn_05 <- c( "Negative", "Positive", "Negative", "Negative", "Negative", "Positive", "Positive", "Positive")
+pvalue_tn_05 <- rep("<0.05", 8)
+tn_AIC_05_results <- data.frame(tn_lm_0.05, direction_correlated_tn_05, pvalue_tn_05) %>% 
+  rename("Variables_Correlated" = tn_lm_0.05,
+         "Direction_of_Correlation" = direction_correlated_tn_05,
+         "P-Value" = pvalue_tn_05)
+
+tn_lm_0.01 <- c("OBSRVD_INVRT_RCHNSS", "WDRatio")
+direction_correlated_tn_01 <- c( "Negative", "Negative")
+pvalue_tn_01 <- rep("<0.01", 2)
+tn_AIC_01_results <- data.frame(tn_lm_0.01, direction_correlated_tn_01, pvalue_tn_01) %>% 
+  rename("Variables_Correlated" = tn_lm_0.01,
+         "Direction_of_Correlation" = direction_correlated_tn_01,
+         "P-Value" = pvalue_tn_01)
+
+TN_AIM_Results <- rbind( tn_AIC_01_results, tn_AIC_05_results)
+
 
 #__________________________________________________
 
@@ -221,6 +260,31 @@ summary(TPmodel)
 #at 0.01: ReachLength(+), INSTNT_TEMP(-), LWD_FREQ(-), MACROINVRTBRTE_CNT(-)
 #at 0.001: StreamOrder(+), BNK_STBLTY(-), D50(-)
 
+tp_lm_0.05 <- c("WDRatio")
+direction_correlated_tp_05 <- c( "Negative")
+pvalue_tp_05 <- rep("<0.05", 1)
+tp_AIC_05_results <- data.frame(tp_lm_0.05, direction_correlated_tp_05, pvalue_tp_05) %>% 
+  rename("Variables_Correlated" = tp_lm_0.05,
+         "Direction_of_Correlation" = direction_correlated_tp_05,
+         "P-Value" = pvalue_tp_05)
+
+tp_lm_0.01 <- c("ReachLength", "INSTNT_TEMP", "LWD_FREQ", "MACROINVRTBRTE_CNT")
+direction_correlated_tp_01 <- c( "Positive","Negative", "Negative", "Negative")
+pvalue_tp_01 <- rep("<0.01", 4)
+tp_AIC_01_results <- data.frame(tp_lm_0.01, direction_correlated_tp_01, pvalue_tp_01) %>% 
+  rename("Variables_Correlated" = tp_lm_0.01,
+         "Direction_of_Correlation" = direction_correlated_tp_01,
+         "P-Value" = pvalue_tp_01)
+
+tp_lm_0.001 <- c("StreamOrder", "BNK_STBLTY", "D50")
+direction_correlated_tp_001 <- c( "Positive","Negative", "Negative")
+pvalue_tp_001 <- rep("<0.001", 3)
+tp_AIC_001_results <- data.frame(tp_lm_0.001, direction_correlated_tp_001, pvalue_tp_001) %>% 
+  rename("Variables_Correlated" = tp_lm_0.001,
+         "Direction_of_Correlation" = direction_correlated_tp_001,
+         "P-Value" = pvalue_tp_001)
+
+TP_AIC_Results <- rbind(  tp_AIC_001_results, tp_AIC_01_results,tp_AIC_05_results)
 #___________________________________________
 
 #AIC for Observed Invertebrate Richness
@@ -236,6 +300,31 @@ summary(Invert_model)
 #at 0.01: LWD_FREQ(-), BNK_STBLTY(-), INCSN_HT(-), CHN_INCSN(+), WTTD_WT(+), WDRatio(-), Catchment_area_sqkm(-)
 #at 0.001: NON_NTVE_HRB(-), TotalN(-)
 
+invert_lm_0.05 <- c("StreamOrder", "RPRN_VEG_CNPY_CVR", "RPRN_VEG_UNDRSTRY_CVR", "RPRN_VEG_GC", "NTVE_HRB", "Number_of_dams_upstream", "D50", "Dams_per_sqkm")
+direction_correlated_invert_05 <- c("Positive", "Negative", "Negative", "Positive", "Negative", "Negative", "Negative", "Positive")
+pvalue_invert_05 <- rep("<0.05", 8)
+invert_AIC_05_results <- data.frame(invert_lm_0.05, direction_correlated_invert_05, pvalue_invert_05) %>% 
+  rename("Variables_Correlated" = invert_lm_0.05,
+         "Direction_of_Correlation" = direction_correlated_invert_05,
+         "P-Value" = pvalue_invert_05)
+
+invert_lm_0.01 <- c("LWD_FREQ", "BNK_STBLTY", "INCSN_HT", "CHN_INCSN", "WTTD_WT", "WDRatio", "Catchment_area_sqkm")
+direction_correlated_invert_01 <- c( "Negative", "Negative",  "Negative", "Positive","Positive","Negative", "Negative")
+pvalue_invert_01 <- rep("<0.01", 7)
+invert_AIC_01_results <- data.frame(invert_lm_0.01, direction_correlated_invert_01, pvalue_invert_01) %>% 
+  rename("Variables_Correlated" = invert_lm_0.01,
+         "Direction_of_Correlation" = direction_correlated_invert_01,
+         "P-Value" = pvalue_invert_01)
+
+invert_lm_0.001 <- c("NON_NTVE_HRB", "TotalN")
+direction_correlated_invert_001 <- c( "Negative", "Negative")
+pvalue_invert_001 <- rep("<0.001", 2)
+invert_AIC_001_results <- data.frame(invert_lm_0.001, direction_correlated_invert_001, pvalue_invert_001) %>% 
+  rename("Variables_Correlated" = invert_lm_0.001,
+         "Direction_of_Correlation" = direction_correlated_invert_001,
+         "P-Value" = pvalue_invert_001)
+
+Invert_AIC_Results <- rbind( invert_AIC_001_results, invert_AIC_01_results, invert_AIC_05_results)
 #___________________________________________-
 
 #AIC for Bank Full Height
@@ -249,6 +338,25 @@ summary(WD_model)
 #Significant Variables with the positive or negative correlation indicated in pararentheses
 #at 0.05: RPRN_VEG_CNPY_CVR(-), RPRN_VEG_GC(+), NTVE_HRB(-), SDGE_RSH(+), BNK_STBLTY(-), TotalN(-), INCSN_HT(-), CHN_INCSN(+), WTTD_WT(+), Number_of_dams_upstream.x(-), D50(-), Dams_per_sqkm(+)
 #at 0.01: NON_NTVE_HRB(-), LWD_FREQ(-), OBSRVD_INVRT_RCHNSS(-)
+
+wd_lm_0.05 <- c("RPRN_VEG_CNPY_CVR", "RPRN_VEG_GC", "NTVE_HRB", "SDGE_RSH", "BNK_STBLTY", "TotalN", "INCSN_HT", "CHN_INCSN", "WTTD_WT(+)", "Number_of_dams_upstream", "D50", "Dams_per_sqkm")
+direction_correlated_wd_01 <- c("Negative", "Positive", "Negative", "Positive", "Negative", "Negative", "Negative", "Positive", "Positive", "Negative", "Negative", "Positive")
+pvalue_wd_05 <- rep("<0.05", 12)
+wd_AIC_05_results <- data.frame(wd_lm_0.05, direction_correlated_wd_01, pvalue_wd_05) %>% 
+  rename("Variables_Correlated" = wd_lm_0.05,
+         "Direction_of_Correlation" = direction_correlated_wd_01,
+         "P-Value" = pvalue_wd_05)
+
+wd_lm_0.01 <- c("NON_NTVE_HRB", "LWD_FREQ", "OBSRVD_INVRT_RCHNSS")
+direction_correlated_wd_011 <- c("Negative", "Negative","Negative")
+pvalue_wd_01 <- rep("<0.01", 3)
+wd_AIC_01_results <- data.frame(wd_lm_0.01, direction_correlated_wd_011, pvalue_wd_01) %>% 
+  rename("Variables_Correlated" = wd_lm_0.01,
+         "Direction_of_Correlation" = direction_correlated_wd_011,
+         "P-Value" = pvalue_wd_01)
+WD_AIC_Results <- rbind( wd_AIC_01_results, wd_AIC_05_results)
+
+
 
 #___________________________________________-
 
@@ -265,6 +373,30 @@ summary(D50model)
 #at 0.01: VEG_CMPLXTY(-), RPRN_VEG_GC(+), SDGE_RSH(+), LWD_FREQ(-), Number_of_dams_upstream.x(-), TotalN(-) 
 #at 0.001: WTTD_WT(+), WDRatio(-)
 
+d50_lm_0.05 <- c("StreamOrder", "RPRN_VEG_CNPY_CVR", "NON_NTVE_HRB", "pH", "INCSN_HT", "OBSRVD_INVRT_RCHNSS", "Dams_per_sqkm")
+direction_correlated_d50_01 <- c("Positive", "Negative", "Negative", "Positive", "Negative", "Negative", "Positive")
+pvalue_d50_05 <- rep("<0.05", 7)
+D50_AIC_05_results <- data.frame(d50_lm_0.05, direction_correlated_d50_01, pvalue_d50_05) %>% 
+  rename("Variables_Correlated" = d50_lm_0.05,
+         "Direction_of_Correlation" = direction_correlated_d50_01,
+         "P-Value" = pvalue_d50_05)
+
+d50_lm_0.01 <- c("VEG_CMPLXTY", "RPRN_VEG_GC", "SDGE_RSH", "LWD_FREQ", "Number_of_dams_upstream", "TotalN")
+direction_correlated_d50_010 <- c("Negative", "Positive", "Positive", "Negative", "Negative", "Negative")
+pvalue_d50_01 <- rep("<0.01", 6)
+D50_AIC_01_results <- data.frame(d50_lm_0.01, direction_correlated_d50_010, pvalue_d50_01) %>% 
+  rename("Variables_Correlated" = d50_lm_0.01,
+         "Direction_of_Correlation" = direction_correlated_d50_010,
+         "P-Value" = pvalue_d50_01)
+
+d50_lm_0.001 <- c("WTTD_WT", "WDRatio")
+direction_correlated_d50_0010 <- c("Positive", "Negative")
+pvalue_d50_001 <- rep("<0.001", 2)
+D50_AIC_001_results <- data.frame(d50_lm_0.001, direction_correlated_d50_0010, pvalue_d50_001) %>% 
+  rename("Variables_Correlated" = d50_lm_0.001,
+         "Direction_of_Correlation" = direction_correlated_d50_0010,
+         "P-Value" = pvalue_d50_001)
+D50_AIC_results <- rbind(D50_AIC_001_results, D50_AIC_01_results,D50_AIC_05_results  )
 
 #___________________________________________-
 
@@ -282,16 +414,40 @@ Dams_model <- lm(formula = Dams_per_sqkm ~ StreamOrder + VEG_CMPLXTY + RPRN_VEG_
 summary(Dams_model)
 
 #Significant Variables with the positive or negative correlation indicated in pararentheses
-#at 0.05: VEG_CMPLXTY(+), RPRN_VEG_CNPY_CVR(+), NON_NTVE_HRB(+), SDGE_RSH(-), pH(-), LWDVolume(-), INCSN_HT(+), OBSRVD_INVRT_RCHNSS(+), TotalN(+), D50(+) 
-#at 0.01:  RPRN_VEG_GC(-), LWD_FREQ(+), WTTD_WT(-), Number_of_dams_upstream.x(+), WDRatio(+) 
+dam_lm_0.05 <- c("VEG_CMPLXTY", "RPRN_VEG_CNPY_CVR", "NON_NTVE_HRB", "SDGE_RSH", "pH", "LWDVolume", "INCSN_HT", "OBSRVD_INVRT_RCHNSS", "TotalN", "D50") 
+direction_correlated_dam_05 <- c("Positive", "Positive", "Positive", "Negative", "Negative", "Negative", "Positive", "Positive", 
+                          "Positive", "Positive")
+pvalue_dam_05 <- rep("<0.05", 10)
+Dam_AIC_05_results <- data.frame(dam_lm_0.05, direction_correlated_dam_05, pvalue_dam_05)%>% 
+  rename("Variables_Correlated" = dam_lm_0.05,
+         "Direction_of_Correlation" = direction_correlated_dam_05,
+         "P-Value" = pvalue_dam_05)
 
-AICresults <- read.csv("./New Data/AICresults.csv")
+dam_lm_0.01 <- c("RPRN_VEG_GC", "LWD_FREQ", "WTTD_WT", "Number_of_dams_upstream.x", "WDRatio")
+direction_correlated_dam_01 <- c("Negative", "Positive", "Negative", "Positive","Positive")
+pvalue_dam_01 <- rep("<0.01", 5)
+Dam_AIC_01_results <- data.frame(dam_lm_0.01,direction_correlated_dam_01, pvalue_dam_01) %>% 
+  rename("Variables_Correlated" = dam_lm_0.01,
+         "Direction_of_Correlation" = direction_correlated_dam_01,
+         "P-Value" = pvalue_dam_01)
+
+Dams_per_sqkm_AIC_results <- rbind( Dam_AIC_01_results, Dam_AIC_05_results)
 
 
 ```
 
-Conclusions:
--Adding in Maps
 
+```{r echo=FALSE}
+kable(TP_AIC_Results, caption = "Total Phospohrus AIC Results")
+kable(TN_AIM_Results, caption = "Total Nitrogen AIC Results")
+kable(Invert_AIC_Results, caption = "Invertibrate Counts AIC Results")
+kable(WD_AIC_Results, caption = "Bankfull Height AIC Results")
+kable(D50_AIC_results, caption = "D50 Particle Size AIC Results")
+kable(Dams_per_sqkm_AIC_results, caption = "Dams/sqkm AIC Results")
+```
+
+Conclusions:
+
+Overall, either Total number of dams or dams per sq km was a statistically significant variable in all of the AIC linear regressions that we ran. In addition, they were typically associated with metrics that indicate lower water quality, such as increased notrogen levels and decreased vegitation cover. This indicates that dam are either a driver of reduced water quality, or are an correlated indicator of highly impacted watersheds affecting water quality and number of dams in the landscape both.  
 
 
