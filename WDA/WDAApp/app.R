@@ -26,6 +26,7 @@ ui <- fluidPage(theme = shinytheme("superhero"),
                   mainPanel(
                     h6("This project was completed for Water Data Analytics in Spring 2022 at Duke University's Nicholas School of the Environment", align = "center"),
                     h6("Open access data utilized from the Washington State Department of Ecology and the Bureau of Land Managment", align = "center"),
+                    #imageOutput("preImage"),
                     plotlyOutput("scatterplotWQ"),
                     plotlyOutput("scatterplotBio"),
                     plotlyOutput("scatterplotPhys"),
@@ -66,6 +67,9 @@ ui <- fluidPage(theme = shinytheme("superhero"),
 #### Define server  ----
 server <- function(input, output){
 
+  #output$preImage <- renderImage({
+    #flowlines <-  img(src="www/AIMflowlines_yes.png", align = "right")
+  #}) 
   
   # Create a ggplot object for the type of plot you have defined in the UI  
   output$scatterplotWQ <- renderPlotly({
@@ -73,9 +77,10 @@ server <- function(input, output){
                     aes_string(x = input$x, y = input$y1, color = "OBJECTID")) + #can add fill and shape by site id
                geom_point(alpha = 0.6, size = 4) +
                theme_light(base_size = 14) +
+               theme(legend.position = "none")+
                geom_smooth(method = "lm")+
                #scale_shape_manual(values = c(21, 24)) +
-               labs(x = "Selected Dam Variable", y = "Selected Water Quality Variable", color = "Sample Site") + #can you customize WQ parameter name? 
+               labs(title = "Water Quality and Dams", x = "Selected Dam Variable", y = "Selected Water Quality Variable", color = "Sample Site") + #can you customize WQ parameter name? 
                scale_fill_distiller(palette = "YlOrBr", guide = "colorbar", direction = 1))
   })
   
@@ -84,8 +89,9 @@ server <- function(input, output){
                   aes_string(x = input$x, y = input$y2, color = "OBJECTID")) + 
              geom_point(alpha = 0.6, size = 4) +
              theme_light(base_size = 14) +
+             theme(legend.position = "none")+
              geom_smooth(method = "lm")+
-             labs(x = "Selected Dam Variable", y = "Selected Biological Variable", color = "Sample Site") + 
+             labs(title = "Biological Variables and Dams", x = "Selected Dam Variable", y = "Selected Biological Variable", color = "Sample Site") + 
              scale_fill_distiller(palette = "YlOrBr", guide = "colorbar", direction = 1))
   })
   
@@ -94,8 +100,9 @@ server <- function(input, output){
                     aes_string(x = input$x, y = input$y3, color = "OBJECTID")) + #update shape with column name
                geom_point(alpha = 0.6, size = 4) +
                theme_light(base_size = 14) +
+               theme(legend.position = "none")+
                geom_smooth(method = "lm")+
-               labs(x = "Selected Dam Variable", y = "Selected Physical Habitat Variable", color = "Sample Site") + 
+               labs(title = "Physical Habitat and Dams",x = "Selected Dam Variable", y = "Selected Physical Habitat Variable", color = "Sample Site") + 
                scale_fill_distiller(palette = "YlOrBr", guide = "colorbar", direction = 1))
   })
   
